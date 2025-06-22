@@ -1,8 +1,9 @@
-// components/ThemeToggle.tsx
 "use client"
+
 import { useTheme } from "next-themes"
 import { useEffect, useState } from "react"
-import { Moon, Sun } from "lucide-react" // Eğer ikon istiyorsan bunu kurmalısın
+import { Moon, Sun } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 export default function ThemeToggle() {
   const { theme, setTheme } = useTheme()
@@ -12,13 +13,21 @@ export default function ThemeToggle() {
 
   if (!mounted) return null
 
+  const isDark = theme === "dark"
+
   return (
-    <button
-      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-      className="w-10 h-10 flex items-center justify-center rounded-full border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-      aria-label="Toggle Theme"
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={() => setTheme(isDark ? "light" : "dark")}
+      aria-label="Toggle theme"
+      className="transition-colors"
     >
-      {theme === "dark" ? <Sun size={18} className="text-yellow-400" /> : <Moon size={18} className="text-black" />}
-    </button>
+      {isDark ? (
+        <Sun className="h-[1.2rem] w-[1.2rem] text-yellow-400" />
+      ) : (
+        <Moon className="h-[1.2rem] w-[1.2rem] text-gray-700" />
+      )}
+    </Button>
   )
 }
