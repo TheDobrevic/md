@@ -1,5 +1,11 @@
+import ThemeToggle from "@/Components/theme-toggle";
+
 export default function Home() {
   return (
-   <div>MangaDenizi</div>
+    <div>
+   <div>MangaDenizi </div>
+   <ThemeToggle/>
+   </div>
+   
   );
 }
