@@ -6,6 +6,9 @@ import { useRef, useEffect } from "react";
 export default function NotFound() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
+
+
+
   useEffect(() => {
     const canvas = canvasRef.current!;
     const ctx = canvas.getContext("2d")!;
@@ -77,7 +80,7 @@ export default function NotFound() {
       />
 
       <div className="fixed inset-0 flex items-center justify-center pointer-events-none">
-        <div className="font-pixelify text-[2rem]  select-none flex items-center justify-center flex-col text-center">
+        <div className=" font-pixelify text-[2rem]  select-none flex items-center justify-center flex-col text-center">
             <h1>HATA 404</h1>
           <h1>Aradığın sayfa bulunamadı!</h1>
         </div>
