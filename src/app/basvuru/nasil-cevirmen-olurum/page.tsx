@@ -25,7 +25,7 @@ import { Progress } from "@/components/ui/progress";
 import { AlertTriangle, Loader2, Send, CheckCircle } from "lucide-react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 
-// SIFIRDAN YAZDIĞIMIZ ve ARTIK SORUNSUZ ÇALIŞACAK COMPONENT
+// Sıfırdan yazdığımız, garantili component
 import MangaMagnifier from "@/components/ui/MangaMagnifier"; 
 
 const STEPS = { RULES: 1, READING_ORDER: 2, EXAMPLE: 3, MANGA_TEST: 4, USER_INFO: 5, RESULT: 6,};
@@ -63,6 +63,7 @@ export default function OnsiteBasvuruGelistirilmisPage() {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setIsLoading(true); setError("");
     try {
@@ -71,8 +72,10 @@ export default function OnsiteBasvuruGelistirilmisPage() {
         });
         if (!response.ok) throw new Error('Sunucu hatası. Lütfen tekrar deneyin.');
         setCurrentStep(STEPS.RESULT);
-    } catch (err: any) {
-        setError(err.message);
+    } catch (err) { // <-- BURASI DÜZELTİLDİ
+        // Hatanın bir Error nesnesi olup olmadığını kontrol edip mesajını alıyoruz.
+        const errorMessage = err instanceof Error ? err.message : 'Bilinmeyen bir hata oluştu.';
+        setError(errorMessage);
     } finally {
         setIsLoading(false);
     }
@@ -84,7 +87,7 @@ export default function OnsiteBasvuruGelistirilmisPage() {
         {currentStep === STEPS.RULES && (
           <CardContent className="pt-6 space-y-6">
             <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle>ÖNEMLİ BİLGİLENDİRME</AlertTitle><AlertDescription>Şu an için **Light Novel/Novel çevirmen alımımız yoktur.** Bu başvuru formu yalnızca Manga Çevirmenleri içindir.</AlertDescription></Alert>
-            <div className="prose prose-sm dark:prose-invert max-w-none"><p>Çeviri yaparken dikkat etmeniz gerekenler:</p><ul className="list-decimal list-inside space-y-2"><li>Baloncuk atlanmadığından emin olun.</li><li>Uygun okuma sırasına göre çeviri yapın.</li><li>Sitemizdeki <Link href="/cevirmen-kilavuzu" target="_blank" className="text-primary underline">Çevirmen Kılavuzu'nu</Link> mutlaka okuyun.</li></ul></div>
+            <div className="prose prose-sm dark:prose-invert max-w-none"><p>Çeviri yaparken dikkat etmeniz gerekenler:</p><ul className="list-decimal list-inside space-y-2"><li>Baloncuk atlanmadığından emin olun.</li><li>Uygun okuma sırasına göre çeviri yapın.</li><li>Sitemizdeki <Link href="/cevirmen-kilavuzu" target="_blank" className="text-primary underline">Çevirmen Kılavuzunu</Link> mutlaka okuyun.</li></ul></div>
             <div className="flex items-center space-x-2 pt-4 border-t"><Checkbox id="rules-check" checked={rulesAccepted} onCheckedChange={(c) => setRulesAccepted(Boolean(c))} /><label htmlFor="rules-check" className="text-sm font-medium">Kuralları okudum, anladım ve kabul ediyorum.</label></div>
             <Button onClick={() => setCurrentStep(STEPS.READING_ORDER)} disabled={!rulesAccepted} className="w-full">Sonraki Adım: Okuma Sırası</Button>
           </CardContent>
@@ -102,7 +105,8 @@ export default function OnsiteBasvuruGelistirilmisPage() {
          {currentStep === STEPS.EXAMPLE && (
             <CardContent className="pt-6 space-y-6">
                 <h3 className="text-xl font-semibold text-center">Adım 3: Örnek Çeviri</h3>
-                 <p className="text-center text-sm text-muted-foreground">İyi bir çevirinin nasıl görünmesi gerektiğine dair örnek. <br/> Büyütmek için resmin üzerine gelin.</p>
+                 {/* BURADAKİ YAZI, HATAYI GİDERMEK İÇİN GÜNCELLENDİ */}
+                 <p className="text-center text-sm text-muted-foreground">İyi bir çevirinin nasıl görünmesi gerektiğine dair bir örnek. <br/> Büyütmek için resmin üzerine gelin.</p>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
                     <div className="border rounded-lg p-2 bg-gray-50 dark:bg-gray-900 w-full">
                          <MangaMagnifier src="/manga-test/ornek-sayfa.jpg" />
