@@ -52,18 +52,10 @@ const TestNotes = () => (
     <AlertTitle className="text-blue-800 dark:text-blue-300">Sayfalara Özel İpuçları</AlertTitle>
     <AlertDescription className="prose prose-sm dark:prose-invert">
       <ul className="list-disc pl-5 my-0">
-        <li>
-          <strong>Sayfa 3:</strong> {`"g.o.d."`} = Genesis Omega Dragon olarak çevrilecektir.
-        </li>
-        <li>
-          <strong>Sayfa 5:</strong> Erkek karakter, kuaföre gidip görünüşünü değiştiren kız arkadaşını tanıyamamakta ve hala onu beklediğini sanmaktadır.
-        </li>
-        <li>
-          <strong>Sayfa 6:</strong> Kız kardeş, ablası ile çocuğun sevgili olduğunu düşünüp onları ayırmak için plan yapmaktadır.
-        </li>
-        <li>
-          <strong>Sayfa 13:</strong> {`"Equus"`} kelimesini çevirmeniz beklenmektedir.
-        </li>
+        <li><strong>Sayfa 3:</strong> {`"g.o.d."`} = Genesis Omega Dragon olarak çevrilecektir.</li>
+        <li><strong>Sayfa 5:</strong> Erkek karakter, kuaföre gidip görünüşünü değiştiren kız arkadaşını tanıyamamakta ve hala onu beklediğini sanmaktadır.</li>
+        <li><strong>Sayfa 6:</strong> Kız kardeş, ablası ile çocuğun sevgili olduğunu düşünüp onları ayırmak için plan yapmaktadır.</li>
+        <li><strong>Sayfa 13:</strong> {`"Equus"`} kelimesini çevirmeniz beklenmektedir.</li>
       </ul>
     </AlertDescription>
   </Alert>
@@ -75,12 +67,7 @@ export default function OnsiteBasvuruPage() {
   const [orderAccepted, setOrderAccepted] = useState(false);
   const [exampleAccepted, setExampleAccepted] = useState(false);
   const [currentTestIndex, setCurrentTestIndex] = useState(0);
-  const [formData, setFormData] = useState({
-    mangaTest: Array(MANGA_TEST_PAGES.length).fill(""),
-    name: "",
-    email: "",
-    nickname: "",
-  });
+  const [formData, setFormData] = useState({ mangaTest: Array(MANGA_TEST_PAGES.length).fill(""), name: "", email: "", nickname: "" });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -88,14 +75,14 @@ export default function OnsiteBasvuruPage() {
 
   const handleMangaTestChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setSaveState('saving');
-    const newMangaTestData = [...formData.mangaTest];
-    newMangaTestData[currentTestIndex] = e.target.value;
-    setFormData((prev) => ({ ...prev, mangaTest: newMangaTestData }));
+    const newData = [...formData.mangaTest];
+    newData[currentTestIndex] = e.target.value;
+    setFormData(prev => ({ ...prev, mangaTest: newData }));
   };
 
   const handleUserInfoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -103,16 +90,11 @@ export default function OnsiteBasvuruPage() {
     setIsLoading(true);
     setError("");
     try {
-      const response = await fetch('/api/basvuru', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-      if (!response.ok) throw new Error('Sunucu hatası. Lütfen tekrar deneyin.');
+      const res = await fetch('/api/basvuru', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData) });
+      if (!res.ok) throw new Error('Sunucu hatası. Lütfen tekrar deneyin.');
       setCurrentStep(STEPS.RESULT);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Bilinmeyen bir hata oluştu.';
-      setError(errorMessage);
+      setError(err instanceof Error ? err.message : 'Bilinmeyen bir hata oluştu.');
     } finally {
       setIsLoading(false);
     }
@@ -120,83 +102,51 @@ export default function OnsiteBasvuruPage() {
 
   const insertText = useCallback((textToInsert: string, cursorOffset: number) => {
     if (!textareaRef.current) return;
-    const textarea = textareaRef.current;
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const currentText = formData.mangaTest[currentTestIndex] || "";
-    const newText = currentText.substring(0, start) + textToInsert + currentText.substring(end);
-    const newMangaTestData = [...formData.mangaTest];
-    newMangaTestData[currentTestIndex] = newText;
-    setFormData((prev) => ({ ...prev, mangaTest: newMangaTestData }));
+    const ta = textareaRef.current;
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const current = formData.mangaTest[currentTestIndex] || "";
+    const updated = current.slice(0, start) + textToInsert + current.slice(end);
+    const newData = [...formData.mangaTest]; newData[currentTestIndex] = updated;
+    setFormData(prev => ({ ...prev, mangaTest: newData }));
     requestAnimationFrame(() => {
-      textarea.focus();
-      textarea.selectionStart = textarea.selectionEnd = start + cursorOffset;
+      ta.focus(); ta.selectionStart = ta.selectionEnd = start + cursorOffset;
     });
   }, [currentTestIndex, formData.mangaTest]);
 
   const handleAddPage = useCallback(() => {
     if (!textareaRef.current) return;
-    const textarea = textareaRef.current;
-    const selectionStart = textarea.selectionStart;
+    const ta = textareaRef.current;
+    const pos = ta.selectionStart;
     const text = formData.mangaTest[currentTestIndex] || "";
-    if (text.trim() === "") {
-      const newPageMarker = `<<<<<<<<<<<<<<<<<<<<<<<<<<<<< SAYFA 01 >>>>>>>>>>>>>>>>>>>>>>>>>>>>\n\n`;
-      const newMangaTestData = [...formData.mangaTest];
-      newMangaTestData[currentTestIndex] = newPageMarker;
-      setFormData(prev => ({ ...prev, mangaTest: newMangaTestData }));
-      requestAnimationFrame(() => {
-        if (textareaRef.current) {
-          textareaRef.current.focus();
-          textareaRef.current.selectionStart = textareaRef.current.selectionEnd = newPageMarker.length;
-        }
-      });
+    if (!text.trim()) {
+      const marker = `<<<<<<<<<<<<<<<<<<<<<<<<<<<<< SAYFA 01 >>>>>>>>>>>>>>>>>>>>>>>>>>>>\n\n`;
+      const newData = [...formData.mangaTest]; newData[currentTestIndex] = marker;
+      setFormData(prev => ({ ...prev, mangaTest: newData }));
+      requestAnimationFrame(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = marker.length; });
       return;
     }
-    const pageMarkerRegex = /<<<<<<<<<<<<<<<<<<<<<<<<<<<<< SAYFA (\d+) >>>>>>>>>>>>>>>>>>>>>>>>>>>>/g;
-    const markers = [...text.matchAll(pageMarkerRegex)].map(match => ({
-      fullMatch: match[0],
-      number: parseInt(match[1], 10),
-      index: match.index!
-    }));
-
-    let pageNumToInsertAfter = 0;
-    for (const marker of markers) {
-      if (marker.index < selectionStart) {
-        pageNumToInsertAfter = marker.number;
-      } else break;
-    }
-    const newPageNum = pageNumToInsertAfter + 1;
-    const newPageMarker = `\n\n<<<<<<<<<<<<<<<<<<<<<<<<<<<<< SAYFA ${String(newPageNum).padStart(2, '0')} >>>>>>>>>>>>>>>>>>>>>>>>>>>>\n\n`;
-    let newText = text.substring(0, selectionStart) + newPageMarker;
-    const newCursorPos = newText.length - 2;
-    let subsequentText = text.substring(selectionStart).replace(pageMarkerRegex, (match, p1) => {
-      const renumberedNum = parseInt(p1, 10) + 1;
-      return `<<<<<<<<<<<<<<<<<<<<<<<<<<<<< SAYFA ${String(renumberedNum).padStart(2, '0')} >>>>>>>>>>>>>>>>>>>>>>>>>>>>`;
+    const regex = /<<<<<<<<<<<<<<<<<<<<<<<<<<<<< SAYFA (\d+) >>>>>>>>>>>>>>>>>>>>>>>>>>>>/g;
+    const markers = [...text.matchAll(regex)].map(m => ({ idx: m.index!, num: parseInt(m[1],10) }));
+    let last = 0;
+    for (const m of markers) if (m.idx < pos) last = m.num; else break;
+    const next = last + 1;
+    const newMarker = `\n\n<<<<<<<<<<<<<<<<<<<<<<<<<<<<< SAYFA ${String(next).padStart(2,'0')} >>>>>>>>>>>>>>>>>>>>>>>>>>>>\n\n`;
+    const following = text.slice(pos).replace(regex, (_, p1) => {
+      const n = parseInt(p1,10)+1; return `<<<<<<<<<<<<<<<<<<<<<<<<<<<<< SAYFA ${String(n).padStart(2,'0')} >>>>>>>>>>>>>>>>>>>>>>>>>>>>`;
     });
-    newText += subsequentText;
-    const newMangaTestData = [...formData.mangaTest];
-    newMangaTestData[currentTestIndex] = newText;
-    setFormData(prev => ({ ...prev, mangaTest: newMangaTestData }));
-    requestAnimationFrame(() => {
-      if (textareaRef.current) {
-        textareaRef.current.focus();
-        textareaRef.current.selectionStart = textareaRef.current.selectionEnd = newCursorPos;
-      }
-    });
+    const combined = text.slice(0,pos) + newMarker + following;
+    const newData = [...formData.mangaTest]; newData[currentTestIndex] = combined;
+    setFormData(prev => ({ ...prev, mangaTest: newData }));
+    requestAnimationFrame(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = pos + newMarker.length; });
   }, [currentTestIndex, formData.mangaTest]);
 
-  const handleAddImageText = useCallback(() => insertText("* ", 2), [insertText]);
-  const handleAddSfx = useCallback(() => insertText("[]", 1), [insertText]);
+  const handleAddImageText = useCallback(() => insertText("* ",2), [insertText]);
+  const handleAddSfx = useCallback(() => insertText("[]",1), [insertText]);
 
   useEffect(() => {
-    if (saveState === 'saving') {
-      const timer = setTimeout(() => setSaveState('saved'), 800);
-      return () => clearTimeout(timer);
-    }
-    if (saveState === 'saved') {
-      const timer = setTimeout(() => setSaveState('idle'), 1500);
-      return () => clearTimeout(timer);
-    }
+    if (saveState === 'saving') { const t = setTimeout(() => setSaveState('saved'),800); return () => clearTimeout(t); }
+    if (saveState === 'saved') { const t = setTimeout(() => setSaveState('idle'),1500); return () => clearTimeout(t); }
   }, [saveState]);
 
   return (
