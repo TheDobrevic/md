@@ -6,9 +6,6 @@ import { useRef, useEffect } from "react";
 export default function NotFound() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-
-
-
   useEffect(() => {
     const canvas = canvasRef.current!;
     const ctx = canvas.getContext("2d")!;

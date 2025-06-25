@@ -18,9 +18,9 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   return (
-    <nav className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+    <nav className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 font-pixelify">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16 items-center">
+        <div className=" flex justify-between h-16 items-center">
           {/* Logo */}
           <Link href="/" className="flex-shrink-0">
             <div className="relative w-16" style={{ aspectRatio: 717 / 442 }}>
@@ -113,15 +113,15 @@ export default function Navbar() {
       {/* Mobile Menu */}
       {mobileOpen && (
         <div className="sm:hidden bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
-          <div className="px-2 pt-2 pb-3 space-y-1">
+          <div className="font-pixelify px-2 pt-2 pb-3 space-y-1">
         
             <Link href="/" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800">
               Anasayfa
             </Link>
-             <Link href="/changelog" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800">
+             <Link href="/changelog" className=" block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800">
               Değişiklikler
             </Link>
-            <Link href="/mangalar" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800">
+            <Link href="/mangalar" className=" block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800">
               Mangalar
             </Link>
             <DropdownMenu>
