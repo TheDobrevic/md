@@ -44,7 +44,7 @@ const stepVariants = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } },
   exit: { opacity: 0, y: -20, transition: { duration: 0.3, ease: "easeIn" } },
-};
+} as const; 
 
 const TestNotes = () => (
   <Alert variant="default" className="bg-blue-50 dark:bg-blue-900/90 border-blue-200 dark:border-blue-800 text-left">
