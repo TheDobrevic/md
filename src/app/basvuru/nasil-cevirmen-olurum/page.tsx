@@ -132,7 +132,7 @@ export default function OnsiteBasvuruPage() {
     for (const m of markers) if (m.idx < pos) last = m.num; else break;
     const next = last + 1;
     const newMarker = `\n\n<<<<<<<<<<<<<<<<<<<<<<<<<<<<< SAYFA ${String(next).padStart(2,'0')} >>>>>>>>>>>>>>>>>>>>>>>>>>>>\n\n`;
-    const following = text.slice(pos).replace(regex, (_, p1) => {
+    const following = text.slice(pos).replace(regex, (_match: string, p1: string) => {
       const n = parseInt(p1,10)+1; return `<<<<<<<<<<<<<<<<<<<<<<<<<<<<< SAYFA ${String(n).padStart(2,'0')} >>>>>>>>>>>>>>>>>>>>>>>>>>>>`;
     });
     const combined = text.slice(0,pos) + newMarker + following;
@@ -160,12 +160,12 @@ export default function OnsiteBasvuruPage() {
             <MultiStepProgressBar steps={STEP_LABELS} currentStep={currentStep} />
           </div>
         )}
-        <AnimatePresence mode="wait">
+        <AnimatePresence>
           <motion.div key={currentStep} variants={stepVariants} initial="hidden" animate="visible" exit="exit">
             {currentStep === STEPS.RULES && <Step1Rules rulesAccepted={rulesAccepted} setRulesAccepted={setRulesAccepted} onNext={() => setCurrentStep(STEPS.READING_ORDER)} />}
             {currentStep === STEPS.READING_ORDER && <Step2ReadingOrder images={READING_ORDER_IMAGES} orderAccepted={orderAccepted} setOrderAccepted={setOrderAccepted} onNext={() => setCurrentStep(STEPS.EXAMPLE)} />}
             {currentStep === STEPS.EXAMPLE && <Step3Example exampleAccepted={exampleAccepted} setExampleAccepted={setExampleAccepted} onNext={() => setCurrentStep(STEPS.MANGA_TEST)} />}
-            {currentStep === STEPS.MANGA_TEST && <Step4Test TestNotes={TestNotes} currentTestIndex={currentTestIndex} setCurrentTestIndex={setCurrentTestIndex} totalPages={MANGA_TEST_PAGES.length} testPages={MANGA_TEST_PAGES} formData={formData} textareaRef={textareaRef} handleMangaTestChange={handleMangaTestChange} saveState={saveState} handleAddPage={handleAddPage} handleAddImageText={handleAddImageText} handleAddSfx={handleAddSfx} onNext={() => setCurrentStep(STEPS.USER_INFO)} />}
+            {currentStep === STEPS.MANGA_TEST && <Step4Test TestNotes={TestNotes} currentTestIndex={currentTestIndex} setCurrentTestIndex={setCurrentTestIndex} totalPages={MANGA_TEST_PAGES.length} testPages={MANGA_TEST_PAGES} formData={formData}  handleMangaTestChange={handleMangaTestChange} saveState={saveState} handleAddPage={handleAddPage} handleAddImageText={handleAddImageText} handleAddSfx={handleAddSfx} onNext={() => setCurrentStep(STEPS.USER_INFO)} />}
             {currentStep === STEPS.USER_INFO && <Step5UserInfo formData={formData} handleUserInfoChange={handleUserInfoChange} handleSubmit={handleSubmit} isLoading={isLoading} error={error} />}
             {currentStep === STEPS.RESULT && <Step6Result />}
           </motion.div>

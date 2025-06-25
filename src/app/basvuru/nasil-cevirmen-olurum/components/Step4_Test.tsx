@@ -13,7 +13,7 @@ type Props = {
   totalPages: number;
   testPages: string[];
   formData: { mangaTest: string[] };
-  textareaRef: React.RefObject<HTMLTextAreaElement>;
+  textareaRef: {textareaRef}  
   handleMangaTestChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   saveState: 'idle' | 'saving' | 'saved';
   handleAddPage: () => void;
