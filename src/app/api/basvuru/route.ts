@@ -12,35 +12,36 @@ export async function POST(request: Request) {
 
     // --- DEĞİŞİKLİK BURADA BAŞLIYOR ---
 
-    // 1. mangaTest dizisindeki her bir çeviriyi bir Discord "alanı" (field) objesine dönüştür.
+    // 1. Gelen değerlerin boş olup olmadığını kontrol et ve varsayılan bir metin ata.
+    const safeName = name?.trim() || '> Boş Bırakıldı';
+    const safeNickname = nickname?.trim() || '> Bilinmiyor';
+    const safeEmail = email?.trim() ? `||${email.trim()}||` : '> Boş Bırakıldı';
+
+    // 2. mangaTest dizisindeki her bir çeviriyi bir Discord "alanı" (field) objesine dönüştür.
     const testFields = mangaTest.map((translation: string, index: number) => {
-        // Değer 1024 karakteri geçemez. Güvenlik için kısaltma ekleyelim.
         const value = translation.trim() 
             ? "```\n" + translation.substring(0, 1000) + "\n```" 
             : "> Boş Bırakıldı";
 
         return {
-            name: `Sayfa ${index + 1}`, // Alanın başlığı (örn: "Sayfa 1")
-            value: value,                 // Alanın içeriği (çeviri veya boş bırakıldı notu)
-            inline: true                  // Alanların yan yana sığmasını sağlar, daha şık durur.
+            name: `Sayfa ${index + 1}`,
+            value: value,
+            inline: true
         };
     });
 
-    // 2. Ana embed mesajını, bu yeni "alanlar" ile oluştur.
+    // 3. Ana embed mesajını, bu yeni "güvenli" değerler ile oluştur.
     const discordMessage = {
       embeds: [
         {
-          title: `📝 Yeni Çevirmen Başvurusu: ${nickname}`,
-          color: 15158332, // Canlı bir pembe/mor
-          // Açıklama alanını artık sadece bir başlık için kullanıyoruz.
+          title: `📝 Yeni Çevirmen Başvurusu: ${safeNickname}`,
+          color: 15158332,
           description: "Lütfen aşağıdaki çeviri testi sonuçlarını inceleyin.",
-          // fields array'ini temel bilgilerle başlatıp, test sonuçlarını sonuna ekliyoruz.
           fields: [
-            { name: "Ad Soyad", value: name, inline: true },
-            { name: "E-posta", value: `||${email}||`, inline: true },
-            // Araya boş bir alan ekleyerek görsel ayrım sağlayalım.
+            { name: "Ad Soyad", value: safeName, inline: true },
+            { name: "E-posta", value: safeEmail, inline: true },
             { name: '\u200B', value: '\u200B' }, 
-            ...testFields // testFields dizisindeki tüm objeleri buraya yayıyoruz.
+            ...testFields
           ],
           footer: { text: `Başvuru Tarihi: ${new Date().toLocaleString('tr-TR')}` }
         }
@@ -55,7 +56,6 @@ export async function POST(request: Request) {
     });
 
     if (!response.ok) {
-        // Discord'dan gelen hatayı daha detaylı loglamak için
         const errorBody = await response.text();
         console.error("Discord API Error:", errorBody);
         throw new Error(`Discord'a gönderilemedi. Status: ${response.status}`);
