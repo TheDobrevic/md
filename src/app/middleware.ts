@@ -1,18 +1,14 @@
 // middleware.ts
 
-import { auth } from "@/app/auth";
+import { auth } from '@/app/auth'; // Sadece bunu import et.
+export default auth; // Ve sadece bunu export et.
 
-export default auth;
-
-// BU KISIM TÜM SİHRİ YAPIYOR!
-// Middleware'in sadece ve sadece burada listelenen yollarda
-// çalışmasını söylüyoruz.
+// Bu kısım aynı kalıyor ve hala tüm sihri yapıyor!
 export const config = {
   matcher: [
     // Korunmasını istediğiniz tüm yolları buraya listeleyin
     '/profilim/:path*',
     '/ayarlar/:path*',
-    '/dashboard/:path*',
-    // Örnek: '/admin', '/siparislerim' gibi...
+    '/admin/:path*',
   ],
 };

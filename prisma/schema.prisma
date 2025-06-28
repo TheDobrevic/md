@@ -61,6 +61,8 @@ model User {
   // 4. Artık zorunlu ve VARSAYILAN bir değeri var
   image         String    @default("/default-avatar.png") 
   password      String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
   
   // 3. Kullanıcı rolü alanı. Varsayılanı "Standart Kullanıcı"
   role          Role      @default(STANDART_KULLANICI)

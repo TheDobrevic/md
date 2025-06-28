@@ -12,8 +12,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
   providers: [
     Credentials({
+      // Bu kısım aynı kalıyor, dokunmaya gerek yok.
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null;
+        if (!credentials?.email || !credentials.password) return null;
         const user = await prisma.user.findUnique({
           where: { email: credentials.email as string },
         });
@@ -22,8 +23,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           credentials.password as string,
           user.password
         );
-        if (!isPasswordCorrect) return null;
-        return user;
+        if (isPasswordCorrect) {
+            return user;
+        }
+        return null;
       },
     }),
   ],
@@ -33,6 +36,31 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
 
   callbacks: {
+    // --- YENİ EKLENEN YETKİLENDİRME CALLBACK'İ ---
+    authorized({ auth, request: { nextUrl } }) {
+      const isLoggedIn = !!auth?.user;
+      const pathname = nextUrl.pathname;
+
+      // /admin ile başlayan bir yola erişilmeye çalışılıyorsa:
+      if (pathname.startsWith('/admin')) {
+        // Kullanıcının rolü ADMIN ise 'true' (izin ver), değilse 'false' (reddet) döner.
+        return auth?.user?.role === 'ADMIN';
+      }
+
+      // Diğer korumalı rotalar için (profilim vb.)
+      // Sadece giriş yapmış olmak yeterlidir.
+      // Eğer kullanıcı giriş yapmışsa, `isLoggedIn` true olur ve erişime izin verilir.
+      if (isLoggedIn) return true;
+
+      // Yukarıdaki koşullar sağlanmazsa (kullanıcı giriş yapmamışsa)
+      // hiçbir korumalı sayfaya erişemez. `false` dönünce kullanıcı
+      // otomatik olarak 'signIn' sayfasına yönlendirilir.
+      return false;
+    },
+    // ---------------------------------------------
+
+    // Mevcut jwt ve session callback'lerin aynı kalıyor.
+    // Rol bilgisini token'a ve session'a eklemek için bunlar çok önemli.
     jwt({ token, user }) {
       if (user) {
         token.id = user.id;
