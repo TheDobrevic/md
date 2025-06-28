@@ -19,10 +19,18 @@ interface Commit {
 }
 
 export default async function ChangelogPage() {
-  const res = await fetch(
-    'https://api.github.com/repos/TheDobrevic/md/commits',
-    { cache: 'no-store' }
-  )
+ const res = await fetch(
+  'https://api.github.com/repos/TheDobrevic/md/commits',
+  {
+    headers: {
+      // Oluşturduğumuz token'ı Authorization başlığında gönderiyoruz.
+      Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+    },
+    // Bu veriyi çok sık değiştirmiyorsan cache kullanmak daha iyidir.
+    // next: { revalidate: 3600 } // Her 1 saatte bir veriyi tazeler.
+    cache: 'no-store' // Eğer anlık veri gerekiyorsa bunu kullanmaya devam et.
+  }
+)
   if (!res.ok) throw new Error('Failed to fetch commits')
   const commits: Commit[] = await res.json()
 
