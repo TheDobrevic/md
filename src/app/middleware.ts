@@ -1,8 +1,18 @@
 // middleware.ts
-export { auth as middleware } from "@/app/auth";
 
-// Hangi sayfaların korunacağını burada belirtirsiniz.
-// Örn: /profilim, /ayarlar, /dashboard vb. tüm yollar koruma altına alınır.
+import { auth } from "@/app/auth";
+
+export default auth;
+
+// BU KISIM TÜM SİHRİ YAPIYOR!
+// Middleware'in sadece ve sadece burada listelenen yollarda
+// çalışmasını söylüyoruz.
 export const config = {
-  matcher: ["/profilim", "/ayarlar", "/dashboard/:path*"],
+  matcher: [
+    // Korunmasını istediğiniz tüm yolları buraya listeleyin
+    '/profilim/:path*',
+    '/ayarlar/:path*',
+    '/dashboard/:path*',
+    // Örnek: '/admin', '/siparislerim' gibi...
+  ],
 };

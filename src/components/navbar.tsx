@@ -61,7 +61,7 @@ export default function Navbar() {
               
               {status === "unauthenticated" && (
                 // Kullanıcı giriş yapmamışsa "Giriş Yap" butonunu göster
-                <Link href="/api/auth/signin">
+                <Link href="/giris">
                   <Button variant="outline" size="sm">
                     Giriş Yap
                   </Button>
@@ -129,7 +129,7 @@ export default function Navbar() {
              <div className="px-3 py-2">
                {status === "loading" && <Skeleton className="h-8 w-full" />}
                {status === "unauthenticated" && (
-                 <Link href="/api/auth/signin" onClick={closeMobileMenu}>
+                 <Link href="/giris" onClick={closeMobileMenu}>
                    <Button variant="outline" className="w-full">Giriş Yap</Button>
                  </Link>
                )}
