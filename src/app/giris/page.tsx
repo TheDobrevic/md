@@ -1,6 +1,6 @@
-// components/giris-formu.tsx
 
-"use client"; // BU SATIR EN ÖNEMLİSİ!
+
+"use client"; 
 
 import dynamic from "next/dynamic";
 import React from "react";

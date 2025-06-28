@@ -47,6 +47,15 @@ export default function GirisFormu() { // Fonksiyon adını değiştirdik
       router.refresh(); 
     }
     setLoading(false);
+  if (result?.error) {
+      setError("E-posta veya şifre hatalı.");
+    } else if (result?.ok) {
+      // Başarılı giriş!
+      // En garantili yöntem, sayfanın tamamen yenilenerek yönlenmesidir.
+      // Bu, tüm session state'lerinin sıfırlanıp doğru şekilde yüklenmesini sağlar.
+      // Next-Auth, seni geldiğin sayfaya (örn: profilim) geri yönlendirecektir.
+      window.location.href = searchParams.get('callbackUrl') || '/';
+    }
   };
 
   return (
