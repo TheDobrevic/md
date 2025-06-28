@@ -1,7 +1,6 @@
 // prisma/schema.prisma
 
 datasource db {
-  // Provider'ı "sqlite" yerine "postgresql" yapıyoruz.
   provider = "postgresql" 
   url      = env("DATABASE_URL")
 }
@@ -10,8 +9,17 @@ generator client {
   provider = "prisma-client-js"
 }
 
-// User, Account, Session ve diğer modeller AYNEN KALIYOR.
-// Burada başka hiçbir değişiklik yapmanıza gerek yok.
+// Yeni: Kullanıcı rollerini tanımlayan sabit liste (enum)
+enum Role {
+  STANDART_KULLANICI
+  MD_SEVER
+  VIP_KULLANICI
+  EDITOR
+  CEVIRMEN
+  ADMIN
+  KURUCU
+}
+
 model Account {
   id                 String  @id @default(cuid())
   userId             String
@@ -39,13 +47,24 @@ model Session {
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+// Güncellenmiş User Modeli
 model User {
   id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
+  
+  // 1. Artık zorunlu ve EŞSİZ (unique)
+  name          String    @unique
+  
+  // 2. Artık zorunlu ve EŞSİZ (unique)
+  email         String    @unique
   emailVerified DateTime?
-  image         String?
+  
+  // 4. Artık zorunlu ve VARSAYILAN bir değeri var
+  image         String    @default("/default-avatar.png") 
   password      String?
+  
+  // 3. Kullanıcı rolü alanı. Varsayılanı "Standart Kullanıcı"
+  role          Role      @default(STANDART_KULLANICI)
+
   accounts      Account[]
   sessions      Session[]
 }

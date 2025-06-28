@@ -2,7 +2,7 @@
 
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Role } from "@prisma/client";
 import bcrypt from "bcrypt";
 
 const prisma = new PrismaClient();
@@ -39,6 +39,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.name = user.name;
         token.email = user.email;
         token.image = user.image;
+        token.role = user.role;
       }
       return token;
     },
@@ -49,6 +50,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.name = token.name as string | null;
         session.user.email = token.email as string;
         session.user.image = token.image as string | null;
+        session.user.role = token.role as Role;
       }
       return session;
     },
