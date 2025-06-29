@@ -21,8 +21,7 @@ const READING_ORDER_IMAGES = [
   "/reading-order/1.png",
   "/reading-order/2.png",
   "/reading-order/3.png",
-  "/reading-order/4.png",
-  "/reading-order/5.png",
+
 ];
 const MANGA_TEST_PAGES = [
   "/manga-test/page-01.jpg",

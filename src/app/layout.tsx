@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/theme/theme-provider";
 import Navbar from "@/components/navbar";
 import { NextAuthProvider } from "@/components/providers";
+import { Toaster } from "sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,6 +35,7 @@ export default function RootLayout({
           <ThemeProvider>
             <Navbar />
             {children}
+            <Toaster />
           </ThemeProvider>
         </NextAuthProvider>
       </body>
