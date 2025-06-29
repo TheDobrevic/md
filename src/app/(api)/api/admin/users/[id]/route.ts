@@ -1,36 +1,50 @@
 // app/(api)/api/admin/users/[id]/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/app/auth";       // ← auth.ts dosyanızdan
-import { prisma } from "@/lib/prisma"; // Prisma Client'ınız için
-import { Role } from "@prisma/client"; // Rol enum'u için
+import { auth } from "@/app/auth";       // Auth.js helper'ınız
+import { prisma } from "@/lib/prisma"; // Prisma Client'ınız
+import { Role } from "@prisma/client"; // Rol enum'u
+
+export const runtime = 'nodejs'; // Node.js çalışma zamanı (Next.js tip hatası için kritik olabilir)
 
 // Yardımcı Fonksiyon: Yetki Kontrolü
-// Not: `auth()` helper'ı Next.js App Router API Yolları'nda (Route Handlers)
-// NextRequest'i otomatik olarak algılar. Bu yüzden burada 'req' parametresine
-// doğrudan ihtiyacımız yok. Onu tamamen fonksiyon imzasından kaldırıyoruz.
+// >>>>>>> ÖNEMLİ DEĞİŞİKLİK BURADA <<<<<<<
+// Fonksiyon imzasından `req: NextRequest` parametresini kaldırdık.
+// `auth()` helper'ı Next.js Route Handler'ları içinde `Request` objesini
+// otomatik olarak kendi ortamından alır.
 async function checkAdminAuthorization(): Promise<NextResponse | null> {
-    const session = await auth(); // NextAuth v5'in 'auth' helper'ını argümansız çağırın.
+    const session = await auth(); // Auth() argümansız çağrılır
 
-    // Oturum yoksa veya admin değilse erişimi engelle
     if (!session || !session.user || session.user.role !== Role.ADMIN) {
         return NextResponse.json(
             { message: "Erişim reddedildi. Sadece Adminler bu işlemi yapabilir." },
             { status: 403 }
         );
     }
-    return null; // Admin yetkisi varsa null döner, işleme devam edilebilir.
+    return null; 
+}
+
+// Params için Next.js'in beklentisine uygun Promise tip tanımı
+interface RouteParams {
+    id: string;
+}
+
+// Tüm HTTP Metotları için Ortak Argüman Yapısı
+interface RouteHandlerArgs {
+    params: Promise<RouteParams>; // Next.js dokümantasyonundaki gibi Promise olarak belirliyoruz
 }
 
 // ======================= KULLANICI SİLME (DELETE) API =======================
 export async function DELETE(
-  req: NextRequest, // `req` parametresi burada hala var (Next.js kuralı) ama checkAdminAuthorization'a göndermiyoruz.
-  { params }: { params: { id: string } }
+  req: NextRequest, // `req` parametresi Next.js kuralı olarak burada kalır
+  { params }: RouteHandlerArgs 
 ): Promise<NextResponse> {
-  const authError = await checkAdminAuthorization(); // checkAdminAuthorization artık parametre almıyor.
+  // >>>>>>> ÖNEMLİ DEĞİŞİKLİK BURADA <<<<<<<
+  // `checkAdminAuthorization` fonksiyonuna `req` artık gönderilmiyor.
+  const authError = await checkAdminAuthorization(); 
   if (authError) return authError;
 
-  const userId = params.id; // `params.id` zaten bir stringdir, 'await' gerekmez.
+  const { id: userId } = await params; // Next.js örneğindeki gibi params await ediliyor
   if (!userId) {
     return NextResponse.json({ message: "Kullanıcı ID'si eksik." }, { status: 400 });
   }
@@ -52,20 +66,21 @@ export async function DELETE(
 
 // ======================= KULLANICI ROLÜ GÜNCELLEME (PATCH) API =======================
 export async function PATCH(
-  req: NextRequest, // `req` parametresi burada hala var (Next.js kuralı).
-  { params }: { params: { id: string } }
+  req: NextRequest,
+  { params }: RouteHandlerArgs
 ): Promise<NextResponse> {
-  const authError = await checkAdminAuthorization(); // checkAdminAuthorization artık parametre almıyor.
+  // >>>>>>> ÖNEMLİ DEĞİŞİKLİK BURADA <<<<<<<
+  // `checkAdminAuthorization` fonksiyonuna `req` artık gönderilmiyor.
+  const authError = await checkAdminAuthorization(); 
   if (authError) return authError;
 
-  const userId = params.id; // `params.id` direkt string.
+  const { id: userId } = await params; // Next.js örneğindeki gibi params await ediliyor
   if (!userId) {
     return NextResponse.json({ message: "Kullanıcı ID'si eksik." }, { status: 400 });
   }
 
-  const { role } = await req.json(); // `req.json()` bir Promise döner, await zorunlu.
+  const { role } = await req.json(); // `req.json()` bir Promise olduğu için await ZORUNLU.
 
-  // Rol kontrolü: Enum değerlerinize göre.
   if (!role || (role !== Role.STANDART_KULLANICI && role !== Role.ADMIN)) {
     return NextResponse.json(
       { message: "Geçersiz veya eksik rol belirtildi." },
@@ -78,12 +93,7 @@ export async function PATCH(
       where: { id: userId },
       data: { role },
       select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        image: true,
-        createdAt: true,
+        id: true, name: true, email: true, role: true, image: true, createdAt: true,
       },
     });
     return NextResponse.json(updatedUser, { status: 200 });
@@ -98,13 +108,15 @@ export async function PATCH(
 
 // ======================= TEK KULLANICI DETAY GETİRME (GET) API =======================
 export async function GET(
-  req: NextRequest, // `req` parametresi burada hala var (Next.js kuralı).
-  { params }: { params: { id: string } }
+  req: NextRequest,
+  { params }: RouteHandlerArgs
 ): Promise<NextResponse> {
-  const authError = await checkAdminAuthorization(); // checkAdminAuthorization artık parametre almıyor.
+  // >>>>>>> ÖNEMLİ DEĞİŞİKLİK BURADA <<<<<<<
+  // `checkAdminAuthorization` fonksiyonuna `req` artık gönderilmiyor.
+  const authError = await checkAdminAuthorization(); 
   if (authError) return authError;
 
-  const userId = params.id; // `params.id` direkt string.
+  const { id: userId } = await params; // Next.js örneğindeki gibi params await ediliyor
   if (!userId) {
     return NextResponse.json({ message: "Kullanıcı ID'si eksik." }, { status: 400 });
   }
@@ -113,12 +125,7 @@ export async function GET(
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        image: true,
-        createdAt: true,
+        id: true, name: true, email: true, role: true, image: true, createdAt: true,
       },
     });
 
