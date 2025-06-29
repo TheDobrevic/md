@@ -1,62 +1,52 @@
 /* ------------------------------------------------------------
-   globals.css  •  Tailwind + ShadCN token’ları  (HSL sürümü)
+   globals.css  ·  Tailwind + ShadCN token’ları  (HSL, opak)
 -------------------------------------------------------------*/
-
 @import "tailwindcss";
+/* TAILWIND DİREKTİFLERİ DAİMA EN ÜSTE OLMALI */
 
-/* next-themes koyu tema varyantları */
+/* next-themes / dark varyant kısayolları  */
 @custom-variant dark (&:where(.dark, .dark *));
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 
-/* ---------- Design Tokens (light) ---------- */
+/* ------------------ TOKENS · LIGHT ------------------ */
 :root {
   --radius: 0.625rem;
 
-  /* temel arka plan & yazı */
+  /* temel */
   --background: 0 0% 100%;
   --foreground: 222 47% 11%;
 
-  /* kart / popover */
+  /* yüzeyler */
   --card: 0 0% 100%;
   --card-foreground: 222 47% 11%;
   --popover: 0 0% 100%;
   --popover-foreground: 222 47% 11%;
 
-  /* birincil renk */
+  /* ana renk */
   --primary: 222 89% 60%;
   --primary-foreground: 0 0% 100%;
 
-  /* ikincil (doldurma / arayüz) */
+  /* ikinci/kapsayıcı */
   --secondary: 210 40% 96%;
   --secondary-foreground: 222 47% 11%;
 
-  /* yardımcı tonlar */
+  /* yardımcı */
   --muted: 210 40% 96%;
   --muted-foreground: 220 9% 46%;
 
   --accent: 210 40% 96%;
   --accent-foreground: 222 47% 11%;
 
-  /* hata / yıkıcı */
+  /* uyarı */
   --destructive: 0 84% 60%;
 
-  /* sınırlar ve input */
+  /* sınır / input */
   --border: 210 20% 90%;
   --input: 210 20% 90%;
   --ring: 215 16% 47%;
-
-  /* sidebar (isteğe bağlı) */
-  --sidebar: 0 0% 100%;
-  --sidebar-foreground: 222 47% 11%;
-  --sidebar-primary: 222 89% 60%;
-  --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 210 40% 96%;
-  --sidebar-accent-foreground: 222 47% 11%;
-  --sidebar-border: 210 20% 90%;
-  --sidebar-ring: 215 16% 47%;
 }
 
-/* ---------- Design Tokens (dark) ---------- */
+/* ------------------ TOKENS · DARK ------------------ */
 .dark {
   --background: 222 47% 11%;
   --foreground: 0 0% 98%;
@@ -83,17 +73,9 @@
   --border: 216 34% 24%;
   --input: 216 34% 24%;
   --ring: 215 20% 65%;
-
-  --sidebar: 224 38% 15%;
-  --sidebar-foreground: 0 0% 98%;
-  --sidebar-primary: 222 89% 60%;
-  --sidebar-primary-foreground: 222 47% 11%;
-  --sidebar-accent: 215 28% 17%;
-  --sidebar-accent-foreground: 0 0% 98%;
-  --sidebar-border: 216 34% 24%;
-  --sidebar-ring: 215 20% 65%;
 }
-/* ---------- Özel font ---------- */
+
+/* ------------------ ÖZEL FONT ------------------ */
 @font-face {
   font-family: "Pixelify Sans";
   src: url("/fonts/PixelifySans-Regular.ttf") format("truetype");
@@ -101,12 +83,11 @@
   font-style: normal;
   font-display: swap;
 }
-
 .font-pixelify {
   font-family: "Pixelify Sans", sans-serif;
 }
 
-/* ---------- Prose list bullet özelleştirme ---------- */
+/* ------------------ PROSE BULLET ------------------ */
 .prose ul > li::before {
   content: "";
   position: absolute;
