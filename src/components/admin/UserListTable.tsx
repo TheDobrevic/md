@@ -1,28 +1,37 @@
-// components/admin/UserListTable.tsx
+/* ----------------------------------------------------------------
+   components/admin/UserListTable.tsx
+----------------------------------------------------------------- */
 "use client";
 
-import React, { useState, useMemo } from 'react';
-import Image from 'next/image';
-import { Role } from '@prisma/client';
-import { useRouter } from 'next/navigation'; // Sayfa yenilemek için
+import React, { useState, useMemo } from "react";
+import Image from "next/image";
+import { Role } from "@prisma/client";
+import { useRouter } from "next/navigation";
 
-// Shadcn/UI bileşenleri
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from '@/components/ui/table';
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
-} from '@/components/ui/dropdown-menu';
-import { MoreHorizontal } from 'lucide-react';
-import { Button } from '@/components/ui/button'; // Button bileşenini de import edelim
-import { toast } from 'sonner'; // bildirimler için
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { MoreHorizontal } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
-// YENİ EKLENDİ: EditUserModal komponenti
-import { EditUserModal } from './EditUserModal';
+import { EditUserModal } from "./EditUserModal";
 
-// Kullanıcı verisinin tipini tanımla
+/* --------------------------- tipler --------------------------- */
 interface UserDisplayProps {
   id: string;
   name: string | null;
@@ -31,166 +40,172 @@ interface UserDisplayProps {
   image: string | null;
   createdAt: Date;
 }
-
 interface UserListTableProps {
   users: UserDisplayProps[];
 }
 
-export function UserListTable({ users: initialUsers }: UserListTableProps) { // Prop ismini değiştirdim, içerde state'e alacağız
-  const router = useRouter(); // router objesini aldık
-  const [users, setUsers] = useState(initialUsers); // Kullanıcı listesini state'e alıyoruz
-  const [searchTerm, setSearchTerm] = useState('');
-  
-  // Düzenleme modası için state'ler
+/* ------------------------- renk haritası ----------------------- */
+const ROLE_COLORS: Record<Role, string> = {
+  STANDART_KULLANICI: "bg-blue-500",
+  MD_SEVER: "bg-yellow-500",
+  VIP_KULLANICI: "bg-purple-600",
+  EDITOR: "bg-pink-500",
+  CEVIRMEN: "bg-orange-500",
+  ADMIN: "bg-green-600",
+  KURUCU: "bg-red-600",
+};
+
+/* ============================================================= */
+export function UserListTable({ users: initialUsers }: UserListTableProps) {
+  const router = useRouter();
+
+  const [users, setUsers] = useState(initialUsers);
+  const [searchTerm, setSearchTerm] = useState("");
+
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [userToEdit, setUserToEdit] = useState<UserDisplayProps | null>(null);
 
-  // Users prop'u dışarıdan değiştiğinde state'i güncelle (Parent refresh yaparsa)
-  // Bu useEffect sayesinde, parent'ta (AdminPage) router.refresh() çağrıldığında
-  // UserListTable'ın users prop'u güncellenir ve bu da iç state'i senkronize eder.
-  React.useEffect(() => {
-    setUsers(initialUsers);
-  }, [initialUsers]);
+  /* prop güncellenirse state senkronize et */
+  React.useEffect(() => setUsers(initialUsers), [initialUsers]);
 
-  // Arama filtresi mantığı
+  /* ---------------------- filtreleme ---------------------- */
   const filteredUsers = useMemo(() => {
-    if (!searchTerm) {
-      return users;
-    }
-    const lowerCaseSearchTerm = searchTerm.toLowerCase();
-    return users.filter(user =>
-      user.name?.toLowerCase().includes(lowerCaseSearchTerm) ||
-      user.email?.toLowerCase().includes(lowerCaseSearchTerm) ||
-      user.role.toLowerCase().includes(lowerCaseSearchTerm)
+    if (!searchTerm) return users;
+    const q = searchTerm.toLowerCase();
+    return users.filter(
+      (u) =>
+        u.name?.toLowerCase().includes(q) ||
+        u.email?.toLowerCase().includes(q) ||
+        u.role.toLowerCase().includes(q)
     );
-  }, [users, searchTerm]); // users state'ine göre filtrele
+  }, [users, searchTerm]);
 
-  // Silme işlemi
+  /* ---------------------- kullanıcı silme ----------------- */
   const handleDelete = async (userId: string) => {
-    if (!window.confirm("Bu kullanıcıyı kalıcı olarak silmek istediğinizden emin misiniz?")) {
+    if (
+      !window.confirm("Bu kullanıcıyı kalıcı olarak silmek istediğinizden emin misiniz?")
+    )
       return;
-    }
 
     try {
-      const response = await fetch(`/api/admin/users/${userId}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Kullanıcı silinemedi.');
+      const res = await fetch(`/api/admin/users/${userId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const { message } = await res.json();
+        throw new Error(message || "Kullanıcı silinemedi.");
       }
-
-      // Kullanıcı listesini state'ten manuel olarak kaldırarak UI'ı anında güncelle
-      setUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
+      setUsers((prev) => prev.filter((u) => u.id !== userId));
       toast.success("Kullanıcı başarıyla silindi!");
-
-      // Eğer API çağrısından sonra garantili bir re-fetch istersen:
-      // router.refresh(); // Bu, Server Component'i tekrar render ettirir ve users prop'unu günceller.
-      // Ya da `revalidatePath('/admin')` kullanarak belirli bir path'in cache'ini invalidate edebilirsiniz (eğer route handler'daysanız).
-
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen bir hata oluştu.';
-      console.error("Kullanıcı silme hatası:", errorMessage);
-      toast.error(errorMessage);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Bilinmeyen bir hata oluştu.");
     }
   };
 
-  // Düzenleme modalını açma
-  const handleOpenEditModal = (user: UserDisplayProps) => {
-    setUserToEdit(user);
+  /* ---------------------- modal kontrolleri --------------- */
+  const handleOpenEditModal = (u: UserDisplayProps) => {
+    setUserToEdit(u);
     setIsEditModalOpen(true);
   };
-
-  // Düzenleme modalını kapatma
   const handleCloseEditModal = () => {
     setIsEditModalOpen(false);
-    setUserToEdit(null); // Temizle
+    setUserToEdit(null);
   };
+  const handleEditSuccess = () => router.refresh();
 
-  // Düzenleme başarılı olduğunda (modal'dan callback)
-  const handleEditSuccess = () => {
-    // API çağrısı zaten yapıldı, burada sadece router'ı yeniliyoruz
-    // Router refresh, AdminPage'deki `users` verisini yeniden çeker
-    // ve bu da UserListTable'daki initialUsers'ı günceller.
-    router.refresh(); 
-  };
-
-
+  /* ========================== UI ========================== */
   return (
-    <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-semibold">Kullanıcılar</h2>
+    <div className="bg-card border border-border rounded-xl shadow-sm p-6">
+      {/* başlık + arama */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <h2 className="text-xl font-semibold">Kullanıcılar</h2>
         <Input
-          type="text"
-          placeholder="Kullanıcı ara..."
+          placeholder="Kullanıcı ara…"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="max-w-xs"
+          className="w-full sm:max-w-xs rounded-md placeholder:text-muted-foreground"
         />
       </div>
 
-      <div className="rounded-md border dark:border-gray-700 overflow-hidden">
+      {/* tablo */}
+      <div className="overflow-x-auto rounded-lg border border-border">
         <Table>
-          <TableHeader className="bg-gray-50 dark:bg-gray-700">
+          <TableHeader className="bg-muted/30">
             <TableRow>
-              <TableHead className="w-[60px]">Avatar</TableHead>
+              <TableHead className="w-14">Avatar</TableHead>
               <TableHead>İsim</TableHead>
               <TableHead>E-posta</TableHead>
               <TableHead>Rol</TableHead>
-              <TableHead className="text-right">Kayıt Tarihi</TableHead>
-              <TableHead className="w-[50px] text-center">Eylemler</TableHead>
+              <TableHead className="text-right">Kayıt</TableHead>
+              <TableHead className="w-14 text-center">İşlem</TableHead>
             </TableRow>
           </TableHeader>
+
           <TableBody>
             {filteredUsers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center text-gray-500 dark:text-gray-400">
+                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                   Hiç kullanıcı bulunamadı.
                 </TableCell>
               </TableRow>
             ) : (
-              filteredUsers.map((user) => (
-                <TableRow key={user.id}>
+              filteredUsers.map((u) => (
+                <TableRow
+                  key={u.id}
+                  className="hover:bg-muted/50 transition-colors"
+                >
+                  {/* avatar */}
                   <TableCell>
-                    {user.image ? (
+                    {u.image ? (
                       <Image
-                        src={user.image}
-                        alt={`${user.name || 'User'}'s avatar`}
+                        src={u.image}
+                        alt={`${u.name || "User"} avatar`}
                         width={32}
                         height={32}
                         className="rounded-full object-cover"
                       />
                     ) : (
-                      <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-gray-500 dark:text-gray-300 text-xs">
-                        {user.name ? user.name[0]?.toUpperCase() : '?'}
+                      <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-xs text-muted-foreground">
+                        {u.name?.charAt(0).toUpperCase() ?? "?"}
                       </div>
                     )}
                   </TableCell>
-                  <TableCell className="font-medium">{user.name || "Belirtilmemiş"}</TableCell>
-                  <TableCell>{user.email || "Belirtilmemiş"}</TableCell>
+
+                  {/* isim / mail / rol */}
+                  <TableCell className="font-medium">
+                    {u.name ?? "Belirtilmemiş"}
+                  </TableCell>
+                  <TableCell>{u.email ?? "Belirtilmemiş"}</TableCell>
                   <TableCell>
-                    <Badge variant={user.role === Role.ADMIN ? "default" : "secondary"} className={`${user.role === Role.ADMIN ? 'bg-green-500 dark:bg-green-600' : 'bg-blue-500 dark:bg-blue-600'} text-white capitalize`}>
-                      {user.role.toLowerCase()}
+                    <Badge
+                      className={`capitalize text-white ${ROLE_COLORS[u.role]}`}
+                    >
+                      {u.role.toLowerCase()}
                     </Badge>
                   </TableCell>
+
+                  {/* tarih */}
                   <TableCell className="text-right">
-                    {new Date(user.createdAt).toLocaleDateString()}
+                    {new Date(u.createdAt).toLocaleDateString("tr-TR")}
                   </TableCell>
+
+                  {/* menü */}
                   <TableCell className="text-center">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        <Button variant="ghost" size="icon">
                           <span className="sr-only">Menü Aç</span>
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-[160px]">
-                        <DropdownMenuItem onClick={() => handleOpenEditModal(user)}>
+
+                      <DropdownMenuContent align="end" className="w-40">
+                        <DropdownMenuItem onClick={() => handleOpenEditModal(u)}>
                           Düzenle
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => handleDelete(user.id)} className="text-red-600 focus:text-red-700">
+                        <DropdownMenuItem
+                          onClick={() => handleDelete(u.id)}
+                          className="text-red-600 focus:text-red-700"
+                        >
                           Sil
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -203,8 +218,8 @@ export function UserListTable({ users: initialUsers }: UserListTableProps) { // 
         </Table>
       </div>
 
-      {/* Düzenleme Modalı */}
-      {userToEdit && ( // Sadece düzenlenecek kullanıcı varsa modal'ı render et
+      {/* edit modal */}
+      {userToEdit && (
         <EditUserModal
           user={userToEdit}
           isOpen={isEditModalOpen}
