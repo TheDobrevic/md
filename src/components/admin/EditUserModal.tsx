@@ -1,4 +1,3 @@
-// components/admin/EditUserModal.tsx
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -6,11 +5,9 @@ import { Role } from "@prisma/client";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  DialogOverlay,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -22,12 +19,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { User, Shield, Crown, Zap, Edit3, Globe, Settings, X } from "lucide-react";
 
 interface EditingUserProps {
   id: string;
   name: string | null;
   email: string | null;
   role: Role;
+  image?: string | null;
 }
 
 interface EditUserModalProps {
@@ -37,118 +36,161 @@ interface EditUserModalProps {
   onSuccess: () => void;
 }
 
-export function EditUserModal({
-  user,
-  isOpen,
-  onClose,
-  onSuccess,
-}: EditUserModalProps) {
-  /* --------------------------- state --------------------------- */
-  const [selectedRole, setSelectedRole] = useState<Role>(
-    user?.role ?? Role.STANDART_KULLANICI
-  );
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const roleOptions = Object.values(Role);
+const ROLE_OPTIONS = {
+  STANDART_KULLANICI: { label: "Standart Kullanıcı", icon: User },
+  MD_SEVER: { label: "MD Sever", icon: Zap },
+  VIP_KULLANICI: { label: "VIP Kullanıcı", icon: Crown },
+  EDITOR: { label: "Editör", icon: Edit3 },
+  CEVIRMEN: { label: "Çevirmen", icon: Globe },
+  ADMIN: { label: "Administrator", icon: Shield },
+  KURUCU: { label: "Kurucu", icon: Settings },
+};
 
-  /* ----------------------- sync on open ------------------------ */
+export function EditUserModal({ user, isOpen, onClose, onSuccess }: EditUserModalProps) {
+  const [selectedRole, setSelectedRole] = useState<Role>(user?.role ?? Role.STANDART_KULLANICI);
+  const [isLoading, setIsLoading] = useState(false);
+
   useEffect(() => {
     if (user) {
       setSelectedRole(user.role);
-      setError(null);
     }
   }, [user]);
 
-  if (!user) return null; // güvenlik
+  if (!user) return null;
 
-  /* ------------------------ handlers --------------------------- */
   const handleSave = async () => {
+    if (selectedRole === user.role) {
+      toast.info("Rol değişikliği yapılmadı");
+      return;
+    }
+
     setIsLoading(true);
-    setError(null);
+    
     try {
       const res = await fetch(`/api/admin/users/${user.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: selectedRole }),
       });
+      
       if (!res.ok) {
         const { message } = await res.json();
         throw new Error(message || "Kullanıcı rolü güncellenemedi.");
       }
-      toast.success("Kullanıcı rolü başarıyla güncellendi.");
+      
+      toast.success("Kullanıcı rolü başarıyla güncellendi");
       onSuccess();
       onClose();
     } catch (err) {
-      const msg =
-        err instanceof Error ? err.message : "Bilinmeyen bir hata oluştu.";
-      setError(msg);
+      const msg = err instanceof Error ? err.message : "Bilinmeyen bir hata oluştu.";
       toast.error(msg);
     } finally {
       setIsLoading(false);
     }
   };
 
-  /* ======================== UI ======================== */
+  const currentRole = ROLE_OPTIONS[selectedRole];
+  const CurrentIcon = currentRole.icon;
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      {/* Özel, opak arkaplan + blur */}
-      <DialogOverlay className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" />
-
-      <DialogContent className="z-50 w-full max-w-md rounded-xl bg-card text-card-foreground shadow-lg">
+      <DialogContent className="sm:max-w-md bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
         <DialogHeader>
-          <DialogTitle className="text-xl font-semibold">
-            {user.name || user.email} – Rol Düzenle
-          </DialogTitle>
-          <DialogDescription className="text-sm text-muted-foreground">
-            Rol değişiklikleri kullanıcı yetkilerini doğrudan etkiler.
-          </DialogDescription>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              Kullanıcı Rolü Düzenle
+            </DialogTitle>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              className="h-8 w-8 p-0"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         </DialogHeader>
 
-        {/* form */}
-        <div className="space-y-6">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="role" className="text-right">
-              Rol
+        <div className="space-y-6 py-4">
+          {/* User Info */}
+          <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
+            {user.image ? (
+              <img 
+                src={user.image} 
+                alt="Avatar" 
+                className="w-10 h-10 rounded-full object-cover"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-medium">
+                {user.name?.charAt(0).toUpperCase() ?? "?"}
+              </div>
+            )}
+            <div>
+              <p className="text-sm text-gray-900 dark:text-gray-100">{user.name || "İsimsiz Kullanıcı"}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{user.email}</p>
+            </div>
+          </div>
+
+          {/* Role Selection */}
+            <div className="space-y-3">
+            <Label htmlFor="role" className="text-sm font-medium text-gray-900 dark:text-gray-100">
+              Rol Seçimi
             </Label>
-
-            <Select
-              value={selectedRole}
-              onValueChange={(v) => setSelectedRole(v as Role)}
-            >
-              <SelectTrigger className="col-span-3 rounded-md border border-input bg-background focus:ring-2 focus:ring-primary/50">
-                <SelectValue placeholder="Seçiniz" />
+            
+            <Select value={selectedRole} onValueChange={(v) => setSelectedRole(v as Role)}>
+              <SelectTrigger className="w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600">
+                <SelectValue>
+                  <div className="flex items-center gap-2">
+                    <CurrentIcon className="h-4 w-4" />
+                    {currentRole.label}
+                  </div>
+                </SelectValue>
               </SelectTrigger>
-
-              <SelectContent>
-                {roleOptions.map((r) => (
-                  <SelectItem key={r} value={r} className="capitalize">
-                    {r.toLowerCase()}
+              
+              <SelectContent className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600">
+                {Object.entries(ROLE_OPTIONS).map(([value, { label, icon: Icon }]) => (
+                  <SelectItem key={value} value={value}>
+                    <div className="flex items-center gap-2">
+                      <Icon className="h-4 w-4" />
+                      {label}
+                      {value === user.role && (
+                        <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded">
+                          Mevcut
+                        </span>
+                      )}
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-          {error && (
-            <p className="text-red-500 text-sm text-center">{error}</p>
+          {/* Change Warning */}
+          {selectedRole !== user.role && (
+            <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+              <p className="text-sm text-amber-700 dark:text-amber-300">
+                <strong>{ROLE_OPTIONS[user.role].label}</strong> → <strong>{currentRole.label}</strong>
+              </p>
+              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                Bu değişiklik kullanıcının yetkilerini etkileyecektir.
+              </p>
+            </div>
           )}
         </div>
 
-        <DialogFooter className="mt-6 flex justify-end space-x-2">
-          <Button
-            variant="outline"
+        <DialogFooter className="gap-2">
+          <Button 
+            variant="outline" 
             onClick={onClose}
             disabled={isLoading}
-            className="rounded-md"
           >
             İptal
           </Button>
-          <Button
+          <Button 
             onClick={handleSave}
-            disabled={isLoading}
-            className="rounded-md"
+            disabled={isLoading || selectedRole === user.role}
           >
-            {isLoading ? "Kaydediliyor…" : "Kaydet"}
+            {isLoading ? "Kaydediliyor..." : "Kaydet"}
           </Button>
         </DialogFooter>
       </DialogContent>
