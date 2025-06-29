@@ -1,8 +1,8 @@
 // components/admin/EditUserModal.tsx
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { Role } from '@prisma/client';
+import React, { useState, useEffect } from "react";
+import { Role } from "@prisma/client";
 import {
   Dialog,
   DialogContent,
@@ -10,17 +10,17 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { toast } from 'sonner'; // bildirimler için (eğer kullanmıyorsanız kaldırılabilelir veya baska toast kütüphanesi kullanın)
+} from "@/components/ui/select";
+import { toast } from "sonner"; // bildirimler için (eğer kullanmıyorsanız kaldırılabilelir veya baska toast kütüphanesi kullanın)
 
 // Modaldan dönecek kullanıcı tipi, kısmen seçilen özellikler
 interface EditingUserProps {
@@ -37,18 +37,24 @@ interface EditUserModalProps {
   onSuccess: () => void; // İşlem başarılı olduğunda UserListTable'ı güncellemek için
 }
 
-export function EditUserModal({ user, isOpen, onClose, onSuccess }: EditUserModalProps) {
-  const [selectedRole, setSelectedRole] = useState<Role | string>(''); // Role tipini veya string alabilir
+export function EditUserModal({
+  user,
+  isOpen,
+  onClose,
+  onSuccess,
+}: EditUserModalProps) {
+  const [selectedRole, setSelectedRole] = useState<Role>(
+  user?.role ?? Role.STANDART_KULLANICI
+); // Role tipini veya string alabilir
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const roleOptions = Object.values(Role);
 
   // Modal açıldığında veya user değiştiğinde state'i güncelleyin
   useEffect(() => {
     if (user) {
       setSelectedRole(user.role);
       setError(null); // Her açılışta hataları temizle
-    } else {
-      setSelectedRole(''); // Kullanıcı yoksa rolü temizle
     }
   }, [user]);
 
@@ -59,24 +65,26 @@ export function EditUserModal({ user, isOpen, onClose, onSuccess }: EditUserModa
     setError(null);
     try {
       const response = await fetch(`/api/admin/users/${user.id}`, {
-        method: 'PATCH',
+        method: "PATCH",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ role: selectedRole as Role }), // Seçili rolü gönder
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Kullanıcı rolü güncellenemedi.');
+        throw new Error(errorData.message || "Kullanıcı rolü güncellenemedi.");
       }
 
       // const updatedUser = await response.json(); // Güncellenen kullanıcı verisi
       toast.success("Kullanıcı rolü başarıyla güncellendi.");
       onSuccess(); // Parent componenti tetikleyip tabloyu güncelle
-      onClose();   // Modal'ı kapat
+      onClose(); // Modal'ı kapat
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Bilinmeyen bir hata oluştu.');
+      setError(
+        err instanceof Error ? err.message : "Bilinmeyen bir hata oluştu."
+      );
       toast.error(error || "Rol güncellenirken hata oluştu.");
     } finally {
       setIsLoading(false);
@@ -89,7 +97,9 @@ export function EditUserModal({ user, isOpen, onClose, onSuccess }: EditUserModa
         <DialogHeader>
           <DialogTitle>{user.name || user.email} için Rol Düzenle</DialogTitle>
           <DialogDescription>
-            {user.name ? `"${user.name}" adlı kullanıcının rolünü düzenliyorsunuz.` : `E-posta adresi ${user.email} olan kullanıcının rolünü düzenliyorsunuz.`}
+            {user.name
+              ? `"${user.name}" adlı kullanıcının rolünü düzenliyorsunuz.`
+              : `E-posta adresi ${user.email} olan kullanıcının rolünü düzenliyorsunuz.`}
             Rol değişiklikleri kullanıcı yetkilerini doğrudan etkiler.
           </DialogDescription>
         </DialogHeader>
@@ -99,13 +109,19 @@ export function EditUserModal({ user, isOpen, onClose, onSuccess }: EditUserModa
             <Label htmlFor="role" className="text-right">
               Rol
             </Label>
-            <Select onValueChange={(value) => setSelectedRole(value as Role)} value={selectedRole}>
+            <Select
+              onValueChange={(value) => setSelectedRole(value as Role)}
+              value={selectedRole}
+            >
               <SelectTrigger className="col-span-3">
                 <SelectValue placeholder="Bir Rol Seç" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={Role.STANDART_KULLANICI}>{Role.STANDART_KULLANICI}</SelectItem>
-                <SelectItem value={Role.ADMIN}>{Role.ADMIN}</SelectItem>
+                {roleOptions.map((r) => (
+                  <SelectItem key={r} value={r}>
+                    {r}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
