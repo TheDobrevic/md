@@ -1,102 +1,130 @@
-/* ----------------------------------------------------------------
-   app/(dashboard)/admin/page.tsx
------------------------------------------------------------------ */
+// app/(dashboard)/admin/page.tsx
 import { auth } from "@/app/auth";
-import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { UserListTable } from "@/components/admin/UserListTable";
-import { Badge } from "@/components/ui/badge";
+import { redirect } from "next/navigation";
+import { SummaryCard } from "@/components/admin/SummaryCard";
+import { Users, UserPlus, BookOpen, Activity } from "lucide-react";
+import { Suspense } from "react";
 
-/** Sunucu tarafı bileşen  */
-export default async function AdminPage() {
-  /* ------------------ yetki kontrolü ------------------ */
-  const session = await auth();
-  if (session?.user.role !== "ADMIN") redirect("/giris");
-
-  /* ------------------ veriler ------------------------- */
-  const [users, todayCount] = await Promise.all([
-    prisma.user.findMany({ orderBy: { createdAt: "desc" } }),
+// Separate component for async data fetching
+async function DashboardStats() {
+  const [userCount, todayUsers, weeklyUsers, mangaCount] = await Promise.all([
+    prisma.user.count(),
     prisma.user.count({
-      where: {
-        createdAt: {
-          gte: new Date(new Date().setHours(0, 0, 0, 0)), // bugün
-        },
+      where: { 
+        createdAt: { 
+          gte: new Date(new Date().setHours(0, 0, 0, 0)) 
+        } 
       },
     }),
+    prisma.user.count({
+      where: { 
+        createdAt: { 
+          gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) 
+        } 
+      },
+    }),
+    // Add manga count if you have a manga model
+    // prisma.manga?.count() || 0,
+    0 // Placeholder for now
   ]);
 
-  const totalUsers = users.length;
+  const yesterdayUsers = await prisma.user.count({
+    where: { 
+      createdAt: { 
+        gte: new Date(Date.now() - 24 * 60 * 60 * 1000),
+        lt: new Date(new Date().setHours(0, 0, 0, 0))
+      } 
+    },
+  });
 
-  /* ------------------ UI ------------------------------ */
   return (
-    <section className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-      {/* sayfa başlığı */}
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">
-          Yönetim Paneli
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Hoş geldin, {session.user.name ?? "Admin"}!
-        </p>
-      </header>
-
-      {/* özet kartları */}
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 mb-10">
-        <SummaryCard
-          title="Toplam Kullanıcı"
-          value={totalUsers.toLocaleString("tr-TR")}
-        />
-        <SummaryCard
-          title="Bugün Eklenen"
-          value={todayCount.toString()}
-          accent="success"
-        />
-        <SummaryCard
-          title="Rol Yönetimi"
-          value="Aktif"
-          accent="info"
-        />
-      </div>
-
-      {/* kullanıcı tablosu */}
-      <UserListTable users={users} />
-    </section>
+    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <SummaryCard 
+        title="Toplam Üye" 
+        value={userCount}
+        icon={Users}
+        subtitle="Kayıtlı kullanıcı sayısı"
+        accent="default"
+      />
+      
+      <SummaryCard 
+        title="Bugün Kayıt" 
+        value={todayUsers}
+        icon={UserPlus}
+        subtitle="Son 24 saatte"
+        accent="success"
+        trend={todayUsers > yesterdayUsers ? "up" : todayUsers < yesterdayUsers ? "down" : "neutral"}
+      />
+      
+      <SummaryCard 
+        title="Haftalık Kayıt" 
+        value={weeklyUsers}
+        icon={Activity}
+        subtitle="Son 7 günde"
+        accent="info"
+      />
+      
+      <SummaryCard 
+        title="Manga Sayısı" 
+        value={mangaCount || "Yakında"}
+        icon={BookOpen}
+        subtitle="Toplam manga"
+        accent="default"
+      />
+    </div>
   );
 }
 
-/* ----------------------- alt bileşen ---------------------- */
-type Accent = "default" | "success" | "info";
-const COLORS: Record<Accent, string> = {
-  default: "bg-primary/10 text-primary",
-  success: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-  info: "bg-sky-500/10 text-sky-600 dark:text-sky-400",
-};
-
-function SummaryCard({
-  title,
-  value,
-  accent = "default",
-}: {
-  title: string;
-  value: string;
-  accent?: Accent;
-}) {
+// Loading skeleton component
+function DashboardSkeleton() {
   return (
-    <div className="rounded-xl bg-card shadow-sm border border-border p-6 flex flex-col gap-2">
-      <span className="text-sm font-medium text-muted-foreground">
-        {title}
-      </span>
+    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <SummaryCard 
+          key={i}
+          title="" 
+          value="" 
+          loading={true}
+        />
+      ))}
+    </div>
+  );
+}
 
-      <h2 className="text-2xl font-bold leading-8">{value}</h2>
+export default async function AdminDashboard() {
+  const session = await auth();
+  if (session?.user.role !== "ADMIN") redirect("/giris");
 
-      {/* durum rozeti */}
-      <Badge className={`self-start mt-2 ${COLORS[accent]}`}>
-        {accent === "success"
-          ? "Güncel"
-          : accent === "info"
-          ? "Bilgi"
-          : "Genel"}
-      </Badge>
+  return (
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+        <p className="text-muted-foreground mt-2">
+          Sistemin genel durumunu ve istatistikleri görüntüleyin.
+        </p>
+      </div>
+
+      <Suspense fallback={<DashboardSkeleton />}>
+        <DashboardStats />
+      </Suspense>
+
+      {/* Add more sections as needed */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="rounded-xl bg-card border border-border shadow-sm p-6">
+          <h3 className="text-lg font-semibold mb-4">Son Aktiviteler</h3>
+          <p className="text-muted-foreground text-sm">
+            Aktivite izleme yakında eklenecek...
+          </p>
+        </div>
+        
+        <div className="rounded-xl bg-card border border-border shadow-sm p-6">
+          <h3 className="text-lg font-semibold mb-4">Hızlı İşlemler</h3>
+          <p className="text-muted-foreground text-sm">
+            Hızlı işlem paneli yakında eklenecek...
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,51 +1,37 @@
 // app/(dashboard)/admin/layout.tsx
+import { auth } from "@/app/auth";
+import { redirect } from "next/navigation";
+import AdminNav from "@/components/admin/AdminNav";
 
-import React from 'react';
-import { auth } from "@/app/auth"; // auth objesini import ediyoruz
-import { redirect } from 'next/navigation'; // Yönlendirme için
-
-// Admin paneline özel bir sidebar veya üst menü ekleyebiliriz.
-// Bu örnekte sadece basit bir wrapper oluşturacağız.
-
-export default async function AdminLayout({
-  children, // Bu prop, altındaki page.tsx veya alt layout'ları temsil eder
-}: {
-  children: React.ReactNode;
+export default async function AdminLayout({ 
+  children 
+}: { 
+  children: React.ReactNode 
 }) {
-  // Bu layout bir Server Component olduğu için async olabilir
-  // ve oturum bilgisini doğrudan çekebiliriz.
   const session = await auth();
-
-  // Yetkilendirme kontrolü: Sadece ADMIN rolüne sahip kullanıcılar erişebilir.
-  // Bu kontrolü middleware zaten yapıyor olsa da, "defense in depth" için
-  // burada tekrar yapmak iyi bir pratiktir.
   if (!session || session.user.role !== "ADMIN") {
-    // Eğer kullanıcı giriş yapmamışsa veya admin değilse, giriş sayfasına yönlendir.
-    // Veya özel bir "Yetkiniz Yok" sayfasına yönlendirebilirsiniz.
     redirect("/giris");
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-100 dark:bg-gray-800">
-      {/* İsteğe bağlı: Admin Sidebar buraya gelebilir */}
-      {/* <aside className="w-64 bg-white dark:bg-gray-900 p-4 shadow-md">
-        <nav>
-          <ul className="space-y-2">
-            <li><Link href="/admin/users">Kullanıcılar</Link></li>
-            <li><Link href="/admin/mangas">Mangalar</Link></li>
-          </ul>
-        </nav>
-      </aside> */}
-
-      <main className="flex-1 p-4 md:p-8">
-        {children} {/* admin/page.tsx veya diğer admin alt sayfaları burada render edilecek */}
+    <div className="flex min-h-screen bg-background">
+      <aside className="w-64 shrink-0 border-r bg-card/50 backdrop-blur-sm">
+        <div className="p-6">
+          <div className="flex items-center gap-2 mb-8">
+            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <span className="text-primary font-bold text-sm">A</span>
+            </div>
+            <h2 className="text-lg font-bold">Admin Panel</h2>
+          </div>
+          <AdminNav />
+        </div>
+      </aside>
+      
+      <main className="flex-1 p-8 overflow-auto">
+        <div className="max-w-7xl mx-auto">
+          {children}
+        </div>
       </main>
     </div>
   );
 }
-
-// Opsiyonel: Metadata buraya eklenebilir
-export const metadata = {
-  title: 'Admin Paneli',
-  description: 'Yönetim paneli',
-};
