@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { User, Shield, Crown, Zap, Edit3, Globe, Settings, X } from "lucide-react";
+import Image from "next/image";
 
 interface EditingUserProps {
   id: string;
@@ -115,7 +116,7 @@ export function EditUserModal({ user, isOpen, onClose, onSuccess }: EditUserModa
           {/* User Info */}
           <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
             {user.image ? (
-              <img 
+              <Image 
                 src={user.image} 
                 alt="Avatar" 
                 className="w-10 h-10 rounded-full object-cover"

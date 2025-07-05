@@ -1,7 +1,7 @@
 // prisma/schema.prisma
 
 datasource db {
-  provider = "postgresql" 
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -20,19 +20,80 @@ enum Role {
   KURUCU
 }
 
+model Manga {
+  id          String      @id @default(cuid())
+  title       String
+  description String?
+  coverImage  String? // Kapak resmi URL'si
+  slug        String      @unique // URL için temiz isim
+  author      String?
+  status      MangaStatus @default(DEVAM_EDIYOR)
+  genres      String[] // Türler array olarak
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // İlişkiler
+  seasons     Season[]
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  createdById String
+
+  @@map("mangas")
+}
+
+model Season {
+  id           String   @id @default(cuid())
+  title        String
+  seasonNumber Int
+  description  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // İlişkiler
+  manga    Manga     @relation(fields: [mangaId], references: [id], onDelete: Cascade)
+  mangaId  String
+  chapters Chapter[]
+
+  @@unique([mangaId, seasonNumber]) // Aynı manga'da aynı sezon numarası olamaz
+  @@map("seasons")
+}
+
+model Chapter {
+  id            String   @id @default(cuid())
+  title         String
+  chapterNumber Int
+  description   String?
+  pages         String[] // Sayfa resimlerinin URL'leri
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // İlişkiler
+  season   Season @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  seasonId String
+
+  @@unique([seasonId, chapterNumber]) // Aynı sezonda aynı bölüm numarası olamaz
+  @@map("chapters")
+}
+
+enum MangaStatus {
+  DEVAM_EDIYOR
+  TAMAMLANDI
+  DURDURULDU
+  YAYIN_BEKLENIYOR
+}
+
 model Account {
-  id                 String  @id @default(cuid())
-  userId             String
-  type               String
-  provider           String
-  providerAccountId  String
-  refresh_token      String?  @db.Text
-  access_token       String?  @db.Text
-  expires_at         Int?
-  token_type         String?
-  scope              String?
-  id_token           String?  @db.Text
-  session_state      String?
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -49,26 +110,29 @@ model Session {
 
 // Güncellenmiş User Modeli
 model User {
-  id            String    @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   // 1. Artık zorunlu ve EŞSİZ (unique)
-  name          String    @unique
-  
+  name String @unique
+
   // 2. Artık zorunlu ve EŞSİZ (unique)
   email         String    @unique
   emailVerified DateTime?
-  
+
   // 4. Artık zorunlu ve VARSAYILAN bir değeri var
-  image         String    @default("/default-avatar.png") 
-  password      String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  
+  image     String   @default("/default-avatar.png")
+  password  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // 3. Kullanıcı rolü alanı. Varsayılanı "Standart Kullanıcı"
-  role          Role      @default(STANDART_KULLANICI)
+  role Role @default(STANDART_KULLANICI)
 
   accounts      Account[]
   sessions      Session[]
+  createdMangas Manga[]
+
+  @@map("users")
 }
 
 model VerificationToken {
