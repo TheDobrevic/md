@@ -1,257 +1,123 @@
-// app/(dashboard)/admin/mangas/add/page.tsx
 'use client';
 
-import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { mangaCreateSchema, MangaCreateData } from '@/lib/validations/manga';
+import { Form } from '@/components/ui/form';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Plus, X } from 'lucide-react';
+import { MangaBasicInfoTab } from './components/MangaBasicInfoTab';
+import { MangaClassificationTab } from './components/MangaClassificationTab';
+import { MangaSeoTab } from './components/MangaSeoTab';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-
-const mangaStatuses = [
-  { value: 'DEVAM_EDIYOR', label: 'Devam Ediyor' },
-  { value: 'TAMAMLANDI', label: 'Tamamlandı' },
-  { value: 'DURDURULDU', label: 'Durduruldu' },
-  { value: 'YAYIN_BEKLENIYOR', label: 'Yayın Bekleniyor' }
-];
-
-const commonGenres = [
-  'Aksiyon', 'Macera', 'Komedi', 'Drama', 'Fantastik', 'Korku', 
-  'Romantik', 'Bilim Kurgu', 'Slice of Life', 'Spor', 'Gerilim', 'Yaşam'
-];
 
 export default function AddMangaPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [genres, setGenres] = useState<string[]>([]);
-  const [newGenre, setNewGenre] = useState('');
-  
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    author: '',
-    status: 'DEVAM_EDIYOR'
+
+  const form = useForm<MangaCreateData>({
+    resolver: zodResolver(mangaCreateSchema),
+    defaultValues: {
+      title: '',
+      description: '',
+      status: 'YAYIN_BEKLENIYOR', // Bu değer artık zorunlu
+      genres: [],
+      tags: [],
+      alternativeNames: [],
+      releaseYear: new Date().getFullYear(),
+      coverImage: '',
+      country: '',
+      slug: '',
+      seoTitle: '',
+      seoDescription: '',
+      seoKeywords: [],
+      author: '',
+      artist: '',
+      publisher: '',
+    },
   });
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const addGenre = (genre: string) => {
-    if (genre.trim() && !genres.includes(genre.trim())) {
-      setGenres(prev => [...prev, genre.trim()]);
-      setNewGenre('');
-    }
-  };
-
-  const removeGenre = (genreToRemove: string) => {
-    setGenres(prev => prev.filter(genre => genre !== genreToRemove));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!formData.title.trim()) {
-      alert('Manga başlığı gereklidir!');
-      return;
-    }
-
+  async function onSubmit(data: MangaCreateData) {
     setLoading(true);
-
     try {
+      // Boş stringleri undefined'a çevir
+      const cleanedData = Object.fromEntries(
+        Object.entries(data).map(([key, value]) => [
+          key,
+          value === '' ? undefined : value
+        ])
+      );
+
       const response = await fetch('/api/admin/mangas', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...formData,
-          genres
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cleanedData),
       });
 
-      const result = await response.json();
-
-      if (result.success) {
-        alert('Manga başarıyla eklendi!');
-        router.push('/admin/mangas');
-      } else {
-        alert(result.error || 'Bir hata oluştu!');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Bir hata oluştu.');
       }
+      
+      const result = await response.json();
+      console.log('Manga oluşturuldu:', result);
+      
+      alert('Manga başarıyla oluşturuldu!');
+      router.push('/admin/mangas');
+      router.refresh();
+      
     } catch (error) {
-      console.error('Hata:', error);
-      alert('Manga eklenirken bir hata oluştu!');
+      console.error('Manga oluşturma hatası:', error);
+      alert((error as Error).message);
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center gap-4">
         <Link href="/admin/mangas">
-          <Button variant="ghost" size="sm">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Geri
+          <Button variant="outline" size="sm">
+            <ArrowLeft className="h-4 w-4 mr-2" /> Geri
           </Button>
         </Link>
-        <div>
-          <h1 className="text-3xl font-bold">Yeni Manga Ekle</h1>
-          <p className="text-muted-foreground">
-            Sisteme yeni bir manga ekleyin
-          </p>
-        </div>
+        <h1 className="text-2xl font-bold tracking-tight">Yeni Manga Ekle</h1>
       </div>
 
-      {/* Form */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Manga Bilgileri</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Başlık */}
-            <div className="space-y-2">
-              <Label htmlFor="title">Manga Başlığı *</Label>
-              <Input
-                id="title"
-                value={formData.title}
-                onChange={(e) => handleInputChange('title', e.target.value)}
-                placeholder="Örn: One Piece"
-                required
-              />
-            </div>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <Tabs defaultValue="basic" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="basic">Temel Bilgiler</TabsTrigger>
+              <TabsTrigger value="classification">Sınıflandırma</TabsTrigger>
+              <TabsTrigger value="seo">SEO</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="basic" className="mt-6">
+              <MangaBasicInfoTab control={form.control} />
+            </TabsContent>
+            
+            <TabsContent value="classification" className="mt-6">
+              <MangaClassificationTab control={form.control} />
+            </TabsContent>
+            
+            <TabsContent value="seo" className="mt-6">
+              <MangaSeoTab control={form.control} />
+            </TabsContent>
+          </Tabs>
 
-            {/* Açıklama */}
-            <div className="space-y-2">
-              <Label htmlFor="description">Açıklama</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => handleInputChange('description', e.target.value)}
-                placeholder="Manga hakkında kısa bir açıklama..."
-                rows={4}
-              />
-            </div>
-
-            {/* Yazar */}
-            <div className="space-y-2">
-              <Label htmlFor="author">Yazar</Label>
-              <Input
-                id="author"
-                value={formData.author}
-                onChange={(e) => handleInputChange('author', e.target.value)}
-                placeholder="Örn: Eiichiro Oda"
-              />
-            </div>
-
-            {/* Durum */}
-            <div className="space-y-2">
-              <Label>Durum</Label>
-              <Select
-                value={formData.status}
-                onValueChange={(value) => handleInputChange('status', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {mangaStatuses.map((status) => (
-                    <SelectItem key={status.value} value={status.value}>
-                      {status.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Türler */}
-            <div className="space-y-4">
-              <Label>Türler</Label>
-              
-              {/* Seçili türler */}
-              {genres.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {genres.map((genre) => (
-                    <div
-                      key={genre}
-                      className="flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded-md text-sm"
-                    >
-                      <span>{genre}</span>
-                      <button
-                        type="button"
-                        onClick={() => removeGenre(genre)}
-                        className="hover:text-red-600"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Yaygın türler */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                {commonGenres.map((genre) => (
-                  <Button
-                    key={genre}
-                    type="button"
-                    variant={genres.includes(genre) ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => addGenre(genre)}
-                    disabled={genres.includes(genre)}
-                  >
-                    {genre}
-                  </Button>
-                ))}
-              </div>
-
-              {/* Özel tür ekleme */}
-              <div className="flex gap-2">
-                <Input
-                  value={newGenre}
-                  onChange={(e) => setNewGenre(e.target.value)}
-                  placeholder="Özel tür ekle..."
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      addGenre(newGenre);
-                    }
-                  }}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => addGenre(newGenre)}
-                  disabled={!newGenre.trim()}
-                >
-                  <Plus className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-
-            {/* Submit Button */}
-            <div className="flex justify-end gap-4">
-              <Link href="/admin/mangas">
-                <Button type="button" variant="outline" disabled={loading}>
-                  İptal
-                </Button>
-              </Link>
-              <Button type="submit" disabled={loading}>
-                {loading ? 'Ekleniyor...' : 'Manga Ekle'}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+          <div className="flex justify-end mt-8">
+            <Button type="submit" size="lg" disabled={loading}>
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {loading ? 'Ekleniyor...' : 'Mangayı Oluştur'}
+            </Button>
+          </div>
+        </form>
+      </Form>
     </div>
   );
 }

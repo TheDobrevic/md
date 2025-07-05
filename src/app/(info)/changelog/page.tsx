@@ -38,7 +38,7 @@ interface Commit {
 function getCommitType(message: string) {
   const lowerMessage = message.toLowerCase();
   
-  if (lowerMessage.includes('feat') || lowerMessage.includes('feature') || lowerMessage.includes('add')) {
+  if (lowerMessage.includes('feat') || lowerMessage.includes('feature') || lowerMessage.includes('add') || lowerMessage.includes("yeni")) {
     return { type: 'feature', icon: Sparkles, color: 'from-emerald-500 to-green-500', label: 'Özellik' };
   }
   if (lowerMessage.includes('fix') || lowerMessage.includes('bug')) {

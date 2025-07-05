@@ -9,37 +9,69 @@ generator client {
   provider = "prisma-client-js"
 }
 
-// Yeni: Kullanıcı rollerini tanımlayan sabit liste (enum)
+// KULLANICI ROLLERİ
 enum Role {
   STANDART_KULLANICI
   MD_SEVER
   VIP_KULLANICI
   EDITOR
   CEVIRMEN
+  MODERATOR
   ADMIN
   KURUCU
 }
 
+// MANGA DURUMU
+enum MangaStatus {
+  DEVAM_EDIYOR
+  TAMAMLANDI
+  DURDURULDU
+  YAYIN_BEKLENIYOR
+  IPTAL_EDILDI
+}
+
+// MANGA Bölümü
 model Manga {
+  //Ana Bileşenler
   id          String      @id @default(cuid())
   title       String
   description String?
   coverImage  String? // Kapak resmi URL'si
   slug        String      @unique // URL için temiz isim
   author      String?
+  artist      String?
   status      MangaStatus @default(DEVAM_EDIYOR)
   genres      String[] // Türler array olarak
+  tags        String[]
+  alternativeNames String[]
+  releaseYear Int?
+  country String?
+  originalLanguage String?
+
+  // İstatistikler
+  views Int @default(0)
+  likes Int @default(0)
+  rating Float?
+
+  // Seo ve Meta
+  seoTitle String?
+  seoDescription String?
+
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
   // İlişkiler
   seasons     Season[]
+  reviews     Review[]
+  favorites   Favorite[]
+  bookmarks   Bookmark[]
   createdBy   User     @relation(fields: [createdById], references: [id])
   createdById String
 
   @@map("mangas")
 }
 
+// MANGA SEZONLARI
 model Season {
   id           String   @id @default(cuid())
   title        String
@@ -57,30 +89,134 @@ model Season {
   @@map("seasons")
 }
 
+// BÖLÜMLER
 model Chapter {
   id            String   @id @default(cuid())
   title         String
-  chapterNumber Int
+  chapterNumber Float    // 1.5, 2.5 gibi ara bölümler için
   description   String?
   pages         String[] // Sayfa resimlerinin URL'leri
+  pageCount     Int      @default(0)
+  
+  // Yayın bilgileri
+  isPublished   Boolean  @default(true)
+  publishedAt   DateTime?
+  translatedBy  String?  // Çevirmen bilgisi
+  
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   // İlişkiler
-  season   Season @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  season   Season        @relation(fields: [seasonId], references: [id], onDelete: Cascade)
   seasonId String
+  views    ChapterView[]
 
   @@unique([seasonId, chapterNumber]) // Aynı sezonda aynı bölüm numarası olamaz
   @@map("chapters")
 }
 
-enum MangaStatus {
-  DEVAM_EDIYOR
-  TAMAMLANDI
-  DURDURULDU
-  YAYIN_BEKLENIYOR
+// YORUM SİSTEMİ
+model Review {
+  id        String   @id @default(cuid())
+  rating    Int      // 1-5 yıldız
+  comment   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId  String
+  manga   Manga  @relation(fields: [mangaId], references: [id], onDelete: Cascade)
+  mangaId String
+
+  @@unique([userId, mangaId]) // Kullanıcı manga başına 1 yorum
+  @@map("reviews")
 }
 
+// FAVORİ SİSTEMİ
+model Favorite {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId  String
+  manga   Manga  @relation(fields: [mangaId], references: [id], onDelete: Cascade)
+  mangaId String
+
+  @@unique([userId, mangaId])
+  @@map("favorites")
+}
+
+// OKUMA GEÇMİŞİ/BOOKMARK
+model Bookmark {
+  id              String   @id @default(cuid())
+  lastReadChapter String?  // Son okunan bölüm ID'si
+  lastReadPage    Int?     // Son okunan sayfa
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId  String
+  manga   Manga  @relation(fields: [mangaId], references: [id], onDelete: Cascade)
+  mangaId String
+
+  @@unique([userId, mangaId])
+  @@map("bookmarks")
+}
+
+// BÖLÜM GÖRÜNTÜLEME İSTATİSTİKLERİ
+model ChapterView {
+  id        String   @id @default(cuid())
+  viewedAt  DateTime @default(now())
+  ipAddress String?  // İsteğe bağlı IP takibi
+
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId    String?
+  chapter   Chapter  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  chapterId String
+
+  @@map("chapter_views")
+}
+
+// KULLANICI MODELİ
+model User {
+  id String @id @default(cuid())
+
+  // İSİM
+  name String @unique
+
+  // E-MAİL
+  email         String    @unique
+  emailVerified DateTime?
+
+  // PROFİL RESMİ, ŞİFRE VE OLUŞTURMA TARİHİ
+  image     String   @default("/default-avatar.png")
+  password  String?
+  
+  // Ek profil bilgileri
+  bio       String?
+  location  String?
+  website   String?
+  isActive  Boolean  @default(true)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // STANDART ROL
+  role Role @default(STANDART_KULLANICI)
+
+  // İlişkiler
+  accounts      Account[]
+  sessions      Session[]
+  createdMangas Manga[]
+  reviews       Review[]
+  favorites     Favorite[]
+  bookmarks     Bookmark[]
+  chapterViews  ChapterView[]
+
+  @@map("users")
+}
+
+// ÜYELİK
 model Account {
   id                String  @id @default(cuid())
   userId            String
@@ -100,6 +236,7 @@ model Account {
   @@unique([provider, providerAccountId])
 }
 
+// GİRİŞTE GÜVENLİK İÇİN
 model Session {
   id           String   @id @default(cuid())
   sessionToken String   @unique
@@ -108,33 +245,7 @@ model Session {
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-// Güncellenmiş User Modeli
-model User {
-  id String @id @default(cuid())
-
-  // 1. Artık zorunlu ve EŞSİZ (unique)
-  name String @unique
-
-  // 2. Artık zorunlu ve EŞSİZ (unique)
-  email         String    @unique
-  emailVerified DateTime?
-
-  // 4. Artık zorunlu ve VARSAYILAN bir değeri var
-  image     String   @default("/default-avatar.png")
-  password  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // 3. Kullanıcı rolü alanı. Varsayılanı "Standart Kullanıcı"
-  role Role @default(STANDART_KULLANICI)
-
-  accounts      Account[]
-  sessions      Session[]
-  createdMangas Manga[]
-
-  @@map("users")
-}
-
+// DOĞRULAMA TOKENLERİ
 model VerificationToken {
   identifier String
   token      String   @unique

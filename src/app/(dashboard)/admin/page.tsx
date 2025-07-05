@@ -24,9 +24,7 @@ async function DashboardStats() {
         } 
       },
     }),
-    // Add manga count if you have a manga model
-    // prisma.manga?.count() || 0,
-    0 // Placeholder for now
+    prisma.manga?.count() || 0,
   ]);
 
   const yesterdayUsers = await prisma.user.count({

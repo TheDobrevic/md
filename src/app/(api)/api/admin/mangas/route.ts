@@ -1,165 +1,93 @@
-// app/(api)/api/admin/mangas/route.ts
-import { auth } from "@/app/auth";
-import { prisma } from "@/lib/prisma";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse, NextRequest } from 'next/server';
+import { z } from 'zod';
 
-export async function POST(request: NextRequest) {
+import { prisma } from '@/lib/prisma';
+import { auth } from '@/app/auth'; 
+import { mangaCreateSchema } from '@/lib/validations/manga'; // Oluşturduğumuz Zod şeması
+
+// Türkçe karakterleri de destekleyen daha gelişmiş bir slug oluşturma fonksiyonu
+function createSlug(title: string): string {
+    const a = 'àáâäæãåāăąçćčđďèéêëēėęěğǵḧîïíīįìłḿñńǹňôöòóœøōõőṕŕřßśšşșťțûüùúūǘůűųẃẍÿýžźż·/_,:;'
+    const b = 'aaaaaaaaaacccddeeeeeeeegghiiiiiilmnnnnoooooooooprrsssssttuuuuuuuuuwxyyzzz------'
+    const p = new RegExp(a.split('').join('|'), 'g')
+  
+    return title.toString().toLowerCase()
+      .replace(/\s+/g, '-') // Boşlukları - ile değiştir
+      .replace(p, c => b.charAt(a.indexOf(c))) // Özel karakterleri dönüştür
+      .replace(/&/g, '-ve-') // & karakterini '-ve-' ile değiştir
+      .replace(/[^\w\-]+/g, '') // Kelime olmayan karakterleri kaldır
+      .replace(/\-\-+/g, '-') // Birden fazla -- varsa tek - yap
+      .replace(/^-+/, '') // Başlangıçtaki - karakterlerini kaldır
+      .replace(/-+$/, '') // Sondaki - karakterlerini kaldır
+}
+
+
+// ----------- YENİ MANGA OLUŞTURMA (POST) -----------
+export async function POST(req: Request) {
   try {
-    // Oturum kontrolü - Schema'daki rol isimlerini kullan
+    // 1. Güvenlik: Kullanıcı oturumu ve rol kontrolü (Mevcut kodunuzdan alındı ve iyileştirildi)
     const session = await auth();
-    if (!session || !['ADMIN', 'EDITOR', 'KURUCU'].includes(session.user.role)) {
-      return NextResponse.json(
-        { error: "Yetkiniz bulunmamaktadır" },
-        { status: 403 }
-      );
+    const authorizedRoles = ['ADMIN', 'EDITOR', 'KURUCU'];
+    
+    if (!session?.user?.id || !session.user.role || !authorizedRoles.includes(session.user.role)) {
+      return NextResponse.json({ error: "Bu işlemi yapmak için yetkiniz yok." }, { status: 403 });
     }
+    const userId = session.user.id;
 
-    // DEBUG: Session bilgilerini logla
-    console.log("Session User:", {
-      id: session.user.id,
-      email: session.user.email,
-      role: session.user.role,
-      idType: typeof session.user.id
-    });
+    // 2. Gelen veriyi Zod ile güvenli bir şekilde doğrulama
+    const body = await req.json();
+    const validatedData = mangaCreateSchema.parse(body);
 
-    // User ID'sini kontrol et
-    if (!session.user.id) {
-      return NextResponse.json(
-        { error: "Kullanıcı ID'si bulunamadı" },
-        { status: 400 }
-      );
-    }
+    // 3. Slug oluşturma ve başlık kontrolü
+    const slug = validatedData.slug ? createSlug(validatedData.slug) : createSlug(validatedData.title);
 
-    // Request body'sini al
-    const body = await request.json();
-    const {
-      title,
-      description,
-      author,
-      status,
-      genres,
-      // Kullanılmayan değişkenler kaldırıldı
-      // artist,
-      // tags,
-      // coverImage,
-      // releaseYear,
-      // originalLanguage,
-      // translationStatus,
-      // ageRating,
-      // source
-    } = body;
-
-    // Zorunlu alanları kontrol et
-    if (!title || !author || !status) {
-      return NextResponse.json(
-        { error: "Başlık, yazar ve durum alanları zorunludur" },
-        { status: 400 }
-      );
-    }
-
-    // Kullanıcının varlığını kontrol et
-    console.log("Kontrol edilecek User ID:", session.user.id);
-
-    const userExists = await prisma.user.findUnique({
-      where: { id: session.user.id }
-    });
-
-    if (!userExists) {
-      // Debug için kullanıcıları listele
-      const allUsers = await prisma.user.findMany({
-        select: { id: true, email: true, name: true, role: true }
-      });
-      console.log("Tüm kullanıcılar:", allUsers);
-      console.log("Aranan ID:", session.user.id);
-      
-      return NextResponse.json(
-        { 
-          error: "Kullanıcı bulunamadı",
-          debug: {
-            sessionUserId: session.user.id,
-            sessionUserEmail: session.user.email,
-            allUserIds: allUsers.map(u => u.id)
-          }
-        },
-        { status: 404 }
-      );
-    }
-
-    // Aynı başlıkta manga var mı kontrol et
     const existingManga = await prisma.manga.findFirst({
-      where: {
-        title: title.trim(),
-      }
+      where: { OR: [{ title: validatedData.title }, { slug: slug }] },
     });
 
     if (existingManga) {
       return NextResponse.json(
-        { error: "Bu başlıkta bir manga zaten mevcut" },
-        { status: 409 }
+        { error: "Bu başlık veya URL ile zaten bir manga mevcut." },
+        { status: 409 } // 409 Conflict daha uygun bir HTTP status kodudur
       );
     }
-
-    // Veritabanına manga ekle
-    const manga = await prisma.manga.create({
+    
+    // 4. Veritabanına yazma
+    // Zod'dan gelen doğrulanmış veriyi doğrudan kullanıyoruz. Bu çok daha güvenli ve temiz.
+    const newManga = await prisma.manga.create({
       data: {
-        title: title.trim(),
-        description: description?.trim() || null,
-        author: author.trim(),
-        // Schema'ya göre sadece bu alanları kullan
-        status: status, // MangaStatus enum'ından olmalı
-        genres: genres || [],
-        createdById: session.user.id,
-        slug: title.trim().toLowerCase()
-          .replace(/[^a-z0-9\s]/g, '') // Özel karakterleri kaldır
-          .replace(/\s+/g, '-') // Boşlukları tire ile değiştir
-          .trim()
-        // Diğer alanlar schema'da yok, kaldırıldı
+        ...validatedData,
+        releaseYear: validatedData.releaseYear ? Number(validatedData.releaseYear) : undefined,
+        slug: slug, // Oluşturulan slug'ı ekle
+        createdById: userId, // Güvenli bir şekilde oturumdan gelen kullanıcıyı ata
       },
-      include: {
-        createdBy: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          }
-        }
-      }
     });
 
-    return NextResponse.json({
-      success: true,
-      message: "Manga başarıyla eklendi",
-      data: manga
-    });
+    return NextResponse.json(newManga, { status: 201 }); // 201 Created status kodu
 
   } catch (error) {
-    console.error("Manga ekleme hatası:", error);
-    
-    // Prisma hatalarını kontrol et
-    if (error instanceof Error) {
-    if ('code' in error && error.code === 'P2003') {
-      return NextResponse.json(
-        { error: "Geçersiz kullanıcı referansı" },
-        { status: 400 }
-      );
+    // Zod validasyon hatası olursa, detaylı bilgi döndür
+    if (error instanceof z.ZodError) {
+      // Formda alan bazlı hata göstermeyi kolaylaştırır
+      return NextResponse.json({ error: "Geçersiz form verisi.", details: error.flatten() }, { status: 422 }); // 422 Unprocessable Entity
     }
-  }
-
-    return NextResponse.json(
-      { error: "Manga eklenirken bir hata oluştu" },
-      { status: 500 }
-    );
+    
+    // Genel sunucu hatası
+    console.error("[MANGA_POST_ERROR]", error);
+    return NextResponse.json({ error: "Dahili Sunucu Hatası" }, { status: 500 });
   }
 }
 
+
+// ----------- MANGALARI LİSTELEME (GET) -----------
+// Bu kısım zaten iyi yapılandırılmıştı, olduğu gibi kullanabiliriz.
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
-    if (!session || !['ADMIN', 'EDITOR', 'KURUCU'].includes(session.user.role)) {
-      return NextResponse.json(
-        { error: "Yetkiniz bulunmamaktadır" },
-        { status: 403 }
-      );
+    const authorizedRoles = ['ADMIN', 'EDITOR', 'KURUCU'];
+    
+    if (!session?.user?.id || !session.user.role || !authorizedRoles.includes(session.user.role)) {
+      return NextResponse.json({ error: "Bu işlemi yapmak için yetkiniz yok." }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);
@@ -170,27 +98,19 @@ export async function GET(request: NextRequest) {
     const where = search ? {
       OR: [
         { title: { contains: search, mode: 'insensitive' as const } },
-        { author: { contains: search, mode: 'insensitive' as const } }
+        { author: { contains: search, mode: 'insensitive' as const} }
       ]
     } : {};
 
-    const [mangas, total] = await Promise.all([
+    const [mangas, total] = await prisma.$transaction([
       prisma.manga.findMany({
         where,
         skip: (page - 1) * limit,
         take: limit,
         orderBy: { createdAt: 'desc' },
         include: {
-          createdBy: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            }
-          },
-          _count: {
-            select: { seasons: true }
-          }
+          createdBy: { select: { id: true, name: true } },
+          _count: { select: { seasons: true } }
         }
       }),
       prisma.manga.count({ where })
@@ -198,8 +118,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: {
-        mangas,
+      data: mangas,
+      meta: {
         total,
         page,
         limit,
@@ -208,9 +128,9 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error("Manga listesi hatası:", error);
+    console.error("Manga listeleme hatası:", error);
     return NextResponse.json(
-      { error: "Manga listesi alınırken bir hata oluştu" },
+      { error: "Mangalar listelenirken bir hata oluştu" },
       { status: 500 }
     );
   }

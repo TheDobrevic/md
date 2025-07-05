@@ -43,6 +43,7 @@ const ROLE_OPTIONS = {
   VIP_KULLANICI: { label: "VIP Kullanıcı", icon: Crown },
   EDITOR: { label: "Editör", icon: Edit3 },
   CEVIRMEN: { label: "Çevirmen", icon: Globe },
+  MODERATOR: {label: "Moderatör", icon: Zap},
   ADMIN: { label: "Administrator", icon: Shield },
   KURUCU: { label: "Kurucu", icon: Settings },
 };

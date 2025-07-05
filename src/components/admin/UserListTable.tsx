@@ -53,6 +53,7 @@ const ROLE_COLORS: Record<Role, string> = {
   VIP_KULLANICI: "bg-gradient-to-r from-purple-500 to-violet-600 shadow-purple-500/25",
   EDITOR: "bg-gradient-to-r from-rose-500 to-pink-600 shadow-rose-500/25",
   CEVIRMEN: "bg-gradient-to-r from-cyan-500 to-blue-500 shadow-cyan-500/25",
+  MODERATOR: "bg-gradient-to-r from green-500 to-red-500 shadow-green-500/25",
   ADMIN: "bg-gradient-to-r from-emerald-500 to-green-600 shadow-emerald-500/25",
   KURUCU: "bg-gradient-to-r from-red-500 to-red-600 shadow-red-500/25",
 };
@@ -63,6 +64,7 @@ const ROLE_LABELS: Record<Role, string> = {
   VIP_KULLANICI: "VIP Kullanıcı",
   EDITOR: "Editör",
   CEVIRMEN: "Çevirmen",
+  MODERATOR: "Moderatör",
   ADMIN: "Admin",
   KURUCU: "Kurucu",
 };
@@ -73,6 +75,7 @@ const ROLE_ICONS: Record<Role, React.ElementType> = {
   VIP_KULLANICI: Users,
   EDITOR: Edit,
   CEVIRMEN: Users,
+  MODERATOR: UserCheck,
   ADMIN: UserCheck,
   KURUCU: UserCheck,
 };
